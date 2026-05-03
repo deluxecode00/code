@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Visor de Códigos - Busca tus correos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            margin-bottom: 24px;
+        }
+        .logo {
+            text-align: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #E50914;
+            margin-bottom: 8px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 22px;
+            margin-bottom: 24px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #444;
+            font-size: 15px;
+        }
+        select, input {
+            width: 100%;
+            padding: 14px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 16px;
+            font-size: 16px;
+            background: white;
+            touch-action: manipulation;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #E50914;
+        }
+        button[type="submit"] {
+            width: 100%;
+            background: #E50914;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        button[type="submit"]:active {
+            transform: scale(0.98);
+            background: #b80710;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 16px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .info {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            margin-top: 20px;
+        }
+        .results-container {
+            margin-top: 20px;
+        }
+        .stats {
+            background: white;
+            border-radius: 20px;
+            padding: 10px 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+            display: inline-block;
+            width: auto;
+            border-left: 4px solid;
+        }
+        .table-wrapper {
+            background: white;
+            border-radius: 20px;
+            overflow-x: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 500px;
+        }
+        th {
+            background: #f8f9fa;
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #E50914;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        .btn-ver {
+            background: #E50914;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+        .btn-ver:active {
+            background: #b80710;
+            transform: scale(0.96);
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+        .empty {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 20px;
+            text-align: center;
+            color: #6c757d;
+            margin-top: 20px;
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+            .card {
+                padding: 20px 16px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            th, td {
+                padding: 10px 8px;
+            }
+            .btn-ver {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="logo">N</div>
+        <h1>🔐 Recibe tus códigos</h1>
+        <form id="searchForm">
+            <div class="form-group">
+                <label>📱 Selecciona la plataforma</label>
+                <select name="plataforma" id="plataforma" required>
+                    <option value="">-- Elige una opción --</option>
+                    <% plataformas.forEach(p => { %>
+                        <option value="<%= p.key %>"><%= p.icono %> <%= p.nombre %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>📧 Correo Electrónico del Destinatario</label>
+                <input type="email" name="correo" id="correo" placeholder="Ej: usuario@gmail.com" required>
+            </div>
+            <button type="submit">🔍 Buscar</button>
+        </form>
+        <div id="formError" class="error" style="display: none;"></div>
+        <div class="info">
+            🔒 Se muestran los últimos 5 correos. Haz clic en "Ver" para abrir el correo completo en una nueva pestaña (todos los enlaces funcionarán).
+        </div>
+    </div>
+    <div id="resultsContainer" class="results-container"></div>
+</div>
+
+<script>
+    const form = document.getElementById('searchForm');
+    const resultsDiv = document.getElementById('resultsContainer');
+    const formError = document.getElementById('formError');
+
+    let currentCorreos = [];
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const plataforma = document.getElementById('plataforma').value;
+        const correo = document.getElementById('correo').value;
+
+        if (!plataforma) { mostrarError('Selecciona una plataforma'); return; }
+        if (!correo || !correo.includes('@')) { mostrarError('Ingresa un correo electrónico válido'); return; }
+
+        resultsDiv.innerHTML = '<div class="loading">🔍 Buscando códigos, por favor espera...</div>';
+        formError.style.display = 'none';
+
+        try {
+            const response = await fetch('/buscar-json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plataforma, correo })
+            });
+            const data = await response.json();
+            if (data.error) { mostrarError(data.error); resultsDiv.innerHTML = ''; return; }
+            if (data.success) {
+                currentCorreos = data.correos;
+                renderTabla(data);
+            } else { mostrarError('Error inesperado'); resultsDiv.innerHTML = ''; }
+        } catch (err) {
+            console.error(err);
+            mostrarError('Error de conexión con el servidor');
+            resultsDiv.innerHTML = '';
+        }
+    });
+
+    function mostrarError(msg) {
+        formError.textContent = msg;
+        formError.style.display = 'block';
+        setTimeout(() => { formError.style.display = 'none'; }, 5000);
+    }
+
+    function renderTabla(data) {
+        const { plataforma, correos, correoBuscado } = data;
+        const color = plataforma.color;
+
+        if (correos.length === 0) {
+            resultsDiv.innerHTML = `<div class="empty"><p>😕 No se encontraron correos para <strong>${escapeHtml(correoBuscado)}</strong> en ${plataforma.nombre}.</p></div>`;
+            return;
+        }
+
+        let html = `
+            <div style="margin-bottom: 15px; text-align: center;">
+                <div class="stats" style="border-left: 4px solid ${color};">📧 <strong>${correos.length}</strong> últimos correos encontrados para <strong>${escapeHtml(correoBuscado)}</strong> (${plataforma.nombre})</div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Asunto</th><th>Hora de Llegada</th><th>Acción</th></tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        correos.forEach((correo, idx) => {
+            let fechaMostrar = correo.date;
+            try {
+                const fecha = new Date(correo.date);
+                if (!isNaN(fecha)) {
+                    fechaMostrar = fecha.toLocaleString('es-ES', { 
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit'
+                    }).replace(/\//g, '-');
+                }
+            } catch(e) {}
+
+            html += `
+                <tr>
+                    <td>${escapeHtml(correo.subject)}</span></td>
+                    <td>${escapeHtml(fechaMostrar)}</span></td>
+                    <td><button class="btn-ver" data-index="${idx}">Ver</button></span></td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table></div>`;
+        resultsDiv.innerHTML = html;
+
+        document.querySelectorAll('.btn-ver').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = btn.getAttribute('data-index');
+                const correo = currentCorreos[idx];
+                abrirCorreoEnNuevaPestana(correo);
+            });
+        });
+    }
+
+    function abrirCorreoEnNuevaPestana(correo) {
+        // Construir un documento HTML completo a partir del contenido del correo
+        let contenidoHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${escapeHtml(correo.subject)}</title>
+                <style>
+                    body {
+                        margin: 20px;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                        background: white;
+                        line-height: 1.5;
+                    }
+                    img { max-width: 100%; height: auto; }
+                    table { max-width: 100%; }
+                    a { color: #E50914; }
+                </style>
+            </head>
+            <body>
+                ${correo.body || `<p><em>No se pudo extraer el contenido de este correo.</em></p><p>${escapeHtml(correo.snippet || '')}</p>`}
+            </body>
+            </html>
+        `;
+
+        // Crear un Blob y una URL para abrir en nueva pestaña
+        const blob = new Blob([contenidoHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        // Liberar la URL después de un tiempo (no es crítico)
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= plataforma.nombre %> - Correos para <%= correoBuscado %></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-top: 4px solid <%= plataforma.color %>;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h2 {
+            color: <%= plataforma.color %>;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.4rem;
+        }
+        .header h2 strong {
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .back-btn:hover {
+            background: #5a6268;
+        }
+        .stats {
+            background: white;
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #2c3e50;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            border-left: 4px solid <%= plataforma.color %>;
+        }
+        .stats strong {
+            color: <%= plataforma.color %>;
+        }
+        .email-card {
+            background: white;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: box-shadow 0.2s;
+        }
+        .email-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        }
+        .email-header {
+            padding: 18px 25px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid transparent;
+            transition: background 0.2s;
+        }
+        .email-header:hover {
+            background: #f8f9fa;
+        }
+        .email-header.open {
+            border-bottom-color: #e9ecef;
+        }
+        .email-info {
+            flex: 1;
+        }
+        .email-subject {
+            font-weight: bold;
+            font-size: 16px;
+            color: #E50914;
+            margin-bottom: 5px;
+        }
+        .email-meta {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .toggle-icon {
+            font-size: 20px;
+            color: #adb5bd;
+            transition: transform 0.2s;
+        }
+        .email-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background: #fafafa;
+        }
+        .email-body.open {
+            max-height: 2000px;
+            border-top: 1px solid #e9ecef;
+        }
+        .email-content {
+            padding: 25px;
+            word-wrap: break-word;
+            line-height: 1.6;
+            font-size: 14px;
+            color: #333;
+        }
+        .email-content img {
+            max-width: 100%;
+            height: auto;
+        }
+        .email-content table {
+            max-width: 100%;
+        }
+        .email-content a {
+            color: #E50914;
+        }
+        .empty {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            color: #6c757d;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .empty p {
+            margin: 10px 0;
+        }
+        .empty ul {
+            text-align: left;
+            display: inline-block;
+            margin-top: 15px;
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-radius: 16px;
+        }
+        @media (max-width: 600px) {
+            .email-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .email-content {
+                padding: 15px;
+            }
+            .header h2 {
+                font-size: 1.2rem;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>
+            <span><%= plataforma.icono %></span>
+            <%= plataforma.nombre %>
+            <strong><%= correoBuscado %></strong>
+        </h2>
+        <a href="/" class="back-btn">← Nueva búsqueda</a>
+    </div>
+
+    <div class="stats">
+        📧 Se encontraron <strong><%= correos.length %></strong> correo(s) con los asuntos configurados para <%= plataforma.nombre %> 
+        y que fueron enviados a <strong><%= correoBuscado %></strong>.<br>
+        Haz clic en cada correo para ver su contenido completo.
+    </div>
+
+    <% if (correos.length === 0) { %>
+        <div class="empty">
+            <p>😕 No se encontraron correos para <strong><%= correoBuscado %></strong> con los asuntos de <%= plataforma.nombre %>.</p>
+            <p>Verifica que en tu cuenta central (<strong>deluxecode00@gmail.com</strong>) haya correos enviados a esa dirección y con asuntos como:</p>
+            <ul>
+                <% plataforma.asuntos.forEach(asunto => { %>
+                    <li><%= asunto %></li>
+                <% }); %>
+            </ul>
+            <p style="margin-top: 25px;">🔍 También puedes probar con otro correo o plataforma.</p>
+        </div>
+    <% } else { %>
+        <% correos.forEach((correo, idx) => { 
+            let fechaMostrar = correo.date;
+            try {
+                const fecha = new Date(correo.date);
+                if (!isNaN(fecha)) {
+                    fechaMostrar = fecha.toLocaleString('es-ES', { 
+                        day: 'numeric', month: 'long', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
+                    });
+                }
+            } catch(e) {}
+        %>
+        <div class="email-card">
+            <div class="email-header" onclick="toggleBody(this)">
+                <div class="email-info">
+                    <div class="email-subject"><%= correo.subject %></div>
+                    <div class="email-meta">
+                        📅 <%= fechaMostrar %> | 📨 De: <%= correo.from %>
+                    </div>
+                </div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="email-body">
+                <div class="email-content">
+                    <% if (correo.body && correo.body.trim()) { %>
+                        <%- correo.body %>
+                    <% } else { %>
+                        <p><em>⚠️ No se pudo extraer el contenido de este correo.</em></p>
+                        <p>Vista previa: <%= correo.snippet %></p>
+                    <% } %>
+                    <hr style="margin: 20px 0; border-color: #e0e0e0;">
+                    <small style="color:#6c757d;">ID del mensaje: <%= correo.id %></small>
+                </div>
+            </div>
+        </div>
+        <% }); %>
+    <% } %>
+</div>
+
+<script>
+    function toggleBody(headerElement) {
+        const card = headerElement.closest('.email-card');
+        const bodyDiv = card.querySelector('.email-body');
+        const icon = headerElement.querySelector('.toggle-icon');
+        
+        if (bodyDiv.classList.contains('open')) {
+            bodyDiv.classList.remove('open');
+            headerElement.classList.remove('open');
+            icon.innerHTML = '▼';
+        } else {
+            bodyDiv.classList.add('open');
+            headerElement.classList.add('open');
+            icon.innerHTML = '▲';
+        }
+    }
+</script>
+</body>
+</html>
