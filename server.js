@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 5174;
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = `http://localhost:${PORT}/auth/google/callback`;
+const REDIRECT_URI = process.env.REDIRECT_URI || `http://localhost:${PORT}/auth/google/callback`;
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 
 app.set('view engine', 'ejs');
