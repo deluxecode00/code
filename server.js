@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const { google } = require('googleapis');
-const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -22,6 +21,7 @@ app.use(session({
 
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
+// ========== PLATAFORMAS Y ASUNTOS (puedes mantener los que ya tenías) ==========
 const PLATAFORMAS = {
   netflix: {
     nombre: 'Netflix',
@@ -34,42 +34,10 @@ const PLATAFORMAS = {
       'Tu verificación de inicio de sesión en Netflix'
     ]
   },
-  disneyplus: {
-    nombre: 'Disney+',
-    icono: '✨',
-    color: '#1E3A8A',
-    asuntos: [
-      'Tu código de verificación de Disney+',
-      'Disney+ código de acceso'
-    ]
-  },
-  primevideo: {
-    nombre: 'Prime Video',
-    icono: '📦',
-    color: '#00A8E1',
-    asuntos: [
-      'Código de verificación Amazon Prime',
-      'Prime Video: Código de acceso temporal'
-    ]
-  },
-  hbomax: {
-    nombre: 'HBO Max',
-    icono: '🎬',
-    color: '#6A1B9A',
-    asuntos: [
-      'Código de verificación HBO Max',
-      'HBO Max código de acceso'
-    ]
-  },
-  spotify: {
-    nombre: 'Spotify',
-    icono: '🎵',
-    color: '#1DB954',
-    asuntos: [
-      'Código de verificación Spotify',
-      'Spotify: Código de acceso temporal'
-    ]
-  }
+  disneyplus: { nombre: 'Disney+', icono: '✨', color: '#1E3A8A', asuntos: ['Tu código de verificación de Disney+', 'Disney+ código de acceso'] },
+  primevideo: { nombre: 'Prime Video', icono: '📦', color: '#00A8E1', asuntos: ['Código de verificación Amazon Prime', 'Prime Video: Código de acceso temporal'] },
+  hbomax: { nombre: 'HBO Max', icono: '🎬', color: '#6A1B9A', asuntos: ['Código de verificación HBO Max', 'HBO Max código de acceso'] },
+  spotify: { nombre: 'Spotify', icono: '🎵', color: '#1DB954', asuntos: ['Código de verificación Spotify', 'Spotify: Código de acceso temporal'] }
 };
 
 function buildSubjectQuery(plataformaKey) {
@@ -82,11 +50,9 @@ function decodeBase64(data) {
   return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
 }
 
-// EXTRAE EL CUERPO HTML DE FORMA ROBUSTA
 function getEmailBody(payload) {
   let htmlBody = '';
   let plainBody = '';
-  
   function traverse(part) {
     if (part.mimeType === 'text/html' && part.body && part.body.data) {
       htmlBody = decodeBase64(part.body.data);
@@ -102,9 +68,7 @@ function getEmailBody(payload) {
     }
     return false;
   }
-  
   traverse(payload);
-  // Si encontramos HTML, lo devolvemos; si no, el texto plano
   return htmlBody || plainBody;
 }
 
@@ -118,10 +82,10 @@ function getHeaders(payload) {
 
 async function searchEmailsByPlataforma(plataformaKey, destinatario = null) {
   try {
-    if (!process.env.GMAIL_TOKENS) {
-      throw new Error('No hay tokens');
-    }
-    oauth2Client.setCredentials(JSON.parse(process.env.GMAIL_TOKENS));
+    // Obtenemos los tokens desde la variable de entorno (en producción) o desde donde estén
+    let tokens = process.env.GMAIL_TOKENS;
+    if (!tokens) throw new Error('No hay tokens');
+    oauth2Client.setCredentials(JSON.parse(tokens));
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
     const subjectQuery = buildSubjectQuery(plataformaKey);
@@ -186,23 +150,12 @@ app.get('/', (req, res) => {
 
 app.post('/buscar-json', async (req, res) => {
   const { correo, plataforma } = req.body;
-  if (!correo || !correo.includes('@')) {
-    return res.json({ error: 'Correo inválido' });
-  }
-  if (!plataforma || !PLATAFORMAS[plataforma]) {
-    return res.json({ error: 'Plataforma inválida' });
-  }
+  if (!correo || !correo.includes('@')) return res.json({ error: 'Correo inválido' });
+  if (!plataforma || !PLATAFORMAS[plataforma]) return res.json({ error: 'Plataforma inválida' });
   try {
-    if (!process.env.GMAIL_TOKENS) {
-      return res.json({ error: 'Cuenta Gmail central no conectada' });
-    }
+    if (!process.env.GMAIL_TOKENS) return res.json({ error: 'Cuenta Gmail central no conectada' });
     const correos = await searchEmailsByPlataforma(plataforma, correo);
-    res.json({
-      success: true,
-      plataforma: PLATAFORMAS[plataforma],
-      correos: correos,
-      correoBuscado: correo
-    });
+    res.json({ success: true, plataforma: PLATAFORMAS[plataforma], correos, correoBuscado: correo });
   } catch (err) {
     console.error(err);
     res.json({ error: 'Error al buscar correos' });
@@ -223,22 +176,25 @@ app.get('/auth/google/callback', async (req, res) => {
   if (!code) return res.send('No se recibió código.');
   try {
     const { tokens } = await oauth2Client.getToken(code);
-    const envPath = '.env';
-    let envContent = fs.readFileSync(envPath, 'utf8');
-    envContent = envContent.replace(/^GMAIL_TOKENS=.*$/gm, '');
-    envContent += `\nGMAIL_TOKENS='${JSON.stringify(tokens)}'`;
-    fs.writeFileSync(envPath, envContent);
-    console.log('✅ Tokens guardados.');
-    res.send('Cuenta autorizada. <a href="/">Volver</a>');
+    // IMPORTANTE: En Railway no guardamos en .env, solo mostramos los tokens para que copies
+    console.log('✅ Tokens obtenidos. Cópialos y agrégalos como variable GMAIL_TOKENS en Railway.');
+    console.log('GMAIL_TOKENS=' + JSON.stringify(tokens));
+    res.send(`
+      <h1>Autenticación exitosa</h1>
+      <p>Copia el siguiente token y agrégalo como variable <strong>GMAIL_TOKENS</strong> en Railway (pestaña Variables):</p>
+      <textarea rows="4" cols="80" style="width:100%">GMAIL_TOKENS='${JSON.stringify(tokens)}'</textarea>
+      <br><br>
+      <a href="/">Volver al inicio</a>
+    `);
   } catch (error) {
     console.error(error);
-    res.send('Error al autenticar.');
+    res.send('Error al autenticar: ' + error.message);
   }
 });
 
 app.listen(PORT, () => {
   console.log(`Servidor en http://localhost:${PORT}`);
   if (!process.env.GMAIL_TOKENS) {
-    console.log(`⚠️ Autoriza tu cuenta Gmail: http://localhost:${PORT}/auth/google`);
+    console.log(`⚠️ Aún no hay tokens. Visita /auth/google para autorizar y luego copia el token.`);
   }
 });
