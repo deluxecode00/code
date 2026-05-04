@@ -2,233 +2,306 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Visor de Códigos - Busca tus correos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CONSULTA TU CÓDIGO · Buscador OTP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)),
+                        url('https://assets.nflxext.com/ffe/siteui/vlv3/5efeb1fd-55d2-4799-8d38-e59e15858b9c/web/US-en-20260427-TRIFECTA-perspective_41f184d6-95ac-455a-a049-9ac59f105aaa_large.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            font-family: 'Inter', sans-serif;
+            color: #EDF2F7;
+            padding: 1.5rem 1rem;
             min-height: 100vh;
-            padding: 16px;
         }
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+
+        .container { max-width: 800px; margin: 0 auto; }
+
         .card {
-            background: white;
-            border-radius: 24px;
-            padding: 24px 20px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            margin-bottom: 24px;
+            background: rgba(16, 20, 28, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            padding: 1.8rem 1.5rem;
+            border: 1px solid rgba(229, 9, 20, 0.25);
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5);
+            margin-bottom: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.8rem;
         }
         .logo {
-            text-align: center;
-            font-size: 48px;
-            font-weight: bold;
-            color: #E50914;
-            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.6rem;
+            font-weight: 700;
         }
-        h1 {
-            text-align: center;
-            font-size: 22px;
-            margin-bottom: 24px;
-            color: #333;
+        .logo i { font-size: 1.8rem; color: #E50914; }
+        .logo span {
+            background: linear-gradient(120deg, #FFFFFF, #E50914);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-transform: uppercase;
         }
-        .form-group {
-            margin-bottom: 20px;
+        .badge {
+            background: rgba(229, 9, 20, 0.2);
+            padding: 0.25rem 0.7rem;
+            border-radius: 2rem;
+            font-size: 0.65rem;
+            border: 1px solid rgba(229, 9, 20, 0.4);
         }
+
+        .form-vertical { display: flex; flex-direction: column; gap: 1.6rem; }
+        .field { width: 100%; }
         label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            color: #cdd3e6;
             display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #444;
-            font-size: 15px;
+            margin-bottom: 0.5rem;
+            margin-left: 0.2rem;
+        }
+        .input-group { position: relative; width: 100%; }
+        .input-group i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8a92a8;
+            font-size: 1rem;
+            pointer-events: none;
+            z-index: 2;
         }
         select, input {
             width: 100%;
-            padding: 14px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 16px;
-            font-size: 16px;
-            background: white;
-            touch-action: manipulation;
+            background: #0C0F17cc;
+            border: 1.5px solid #3a4050;
+            border-radius: 0.75rem;
+            padding: 0.85rem 1rem 0.85rem 2.8rem;
+            font-size: 0.95rem;
+            color: #F0F3FA;
+            transition: all 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
         }
         select:focus, input:focus {
             outline: none;
             border-color: #E50914;
+            background: #0C0F17;
         }
-        button[type="submit"] {
+
+        .btn-netflix {
+            background: #E50914;
+            border: none;
+            padding: 0.9rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
             width: 100%;
+            margin-top: 0.5rem;
+        }
+        .btn-netflix:hover { background: #b80710; }
+
+        .btn-view-netflix {
+            background: #E50914;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.7rem;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .btn-view-netflix:hover { background: #b80710; }
+
+        .stats-red {
             background: #E50914;
             color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 16px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            touch-action: manipulation;
+            padding: 0.6rem 1rem;
+            border-radius: 2rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
+            flex-wrap: wrap;
         }
-        button[type="submit"]:active {
-            transform: scale(0.98);
-            background: #b80710;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px;
-            border-radius: 16px;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .info {
-            text-align: center;
-            font-size: 12px;
-            color: #888;
-            margin-top: 20px;
-        }
-        .results-container {
-            margin-top: 20px;
-        }
-        .stats {
-            background: white;
-            border-radius: 20px;
-            padding: 10px 16px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            text-align: center;
-            display: inline-block;
-            width: auto;
-            border-left: 4px solid;
-        }
-        .table-wrapper {
-            background: white;
-            border-radius: 20px;
+        .table-container {
             overflow-x: auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            -webkit-overflow-scrolling: touch;
+            border-radius: 1.2rem;
+            margin-bottom: 1rem;
+            background: rgba(12, 15, 23, 0.6);
+            backdrop-filter: blur(4px);
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
-            min-width: 500px;
+            min-width: 400px;
         }
         th {
-            background: #f8f9fa;
-            padding: 14px 12px;
             text-align: left;
-            font-weight: 600;
+            padding: 0.9rem 0.7rem;
+            background: rgba(8, 10, 15, 0.8);
             color: #E50914;
-            border-bottom: 2px solid #e0e0e0;
+            font-weight: 600;
+            font-size: 0.75rem;
         }
         td {
-            padding: 12px;
-            border-bottom: 1px solid #e9ecef;
-            vertical-align: middle;
+            padding: 0.8rem 0.7rem;
+            border-top: 1px solid #2a3040;
+            color: #e2e8f0;
+            font-size: 0.8rem;
         }
-        .btn-ver {
-            background: #E50914;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            white-space: nowrap;
-            touch-action: manipulation;
+        .empty-state {
+            background: rgba(15, 19, 28, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 1.2rem;
+            padding: 2rem 1rem;
+            text-align: center;
+            color: #cbd5e6;
         }
-        .btn-ver:active {
-            background: #b80710;
-            transform: scale(0.96);
+        .error-message {
+            background: rgba(229, 9, 20, 0.15);
+            border-left: 3px solid #E50914;
+            padding: 0.7rem;
+            border-radius: 1rem;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            backdrop-filter: blur(4px);
+        }
+        .footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.65rem;
+            color: #b9c2d9;
         }
         .loading {
-            text-align: center;
-            padding: 40px;
-            color: white;
-            font-size: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1.5rem;
+            color: #cdd6f0;
         }
-        .empty {
-            background: white;
-            border-radius: 20px;
-            padding: 40px 20px;
-            text-align: center;
-            color: #6c757d;
-            margin-top: 20px;
-        }
-        @media (max-width: 480px) {
-            body {
-                padding: 12px;
-            }
-            .card {
-                padding: 20px 16px;
-            }
-            h1 {
-                font-size: 20px;
-            }
-            th, td {
-                padding: 10px 8px;
-            }
-            .btn-ver {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fa-spinner { animation: spin 1s linear infinite; }
+
+        @media (max-width: 550px) {
+            body { padding: 1rem; }
+            .card { padding: 1.5rem 1rem; }
+            .stats-red { font-size: 0.7rem; }
+            .btn-view-netflix { padding: 0.3rem 0.8rem; font-size: 0.65rem; }
+            .btn-netflix { padding: 0.8rem 1rem; font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="card">
-        <div class="logo">N</div>
-        <h1>🔐 Recibe tus códigos</h1>
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-shield-haltered"></i>
+                <span>CONSULTA TU CÓDIGO</span>
+            </div>
+            <div class="badge">
+                <i class="fas fa-lock"></i> Seguro &nbsp;|&nbsp; <i class="fas fa-envelope"></i> Central
+            </div>
+        </div>
+
         <form id="searchForm">
-            <div class="form-group">
-                <label>📱 Selecciona la plataforma</label>
-                <select name="plataforma" id="plataforma" required>
-                    <option value="">-- Elige una opción --</option>
-                    <% plataformas.forEach(p => { %>
-                        <option value="<%= p.key %>"><%= p.icono %> <%= p.nombre %></option>
-                    <% }); %>
-                </select>
+            <div class="form-vertical">
+                <div class="field">
+                    <label><i class="fas fa-film"></i> Plataforma</label>
+                    <div class="input-group">
+                        <i class="fas fa-tv"></i>
+                        <select name="plataforma" id="plataforma" required>
+                            <option value="">-- Selecciona --</option>
+                            <option value="netflix">Netflix</option>
+                            <option value="primevideo">Prime Video</option>
+                            <option value="disneyplus">Disney+</option>
+                            <option value="hbomax">HBO Max</option>
+                            <option value="spotify">Spotify</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label><i class="fas fa-at"></i> CORREO DE LA PLATAFORMA</label>
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="correo" name="correo" placeholder="usuario@ejemplo.com" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <button type="submit" id="searchBtn" class="btn-netflix"><i class="fas fa-search"></i> Buscar códigos</button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>📧 Correo Electrónico del Destinatario</label>
-                <input type="email" name="correo" id="correo" placeholder="Ej: usuario@gmail.com" required>
-            </div>
-            <button type="submit">🔍 Buscar</button>
         </form>
-        <div id="formError" class="error" style="display: none;"></div>
-        <div class="info">
-            🔒 Se muestran los últimos 5 correos. Haz clic en "Ver" para abrir el correo completo en una nueva pestaña (todos los enlaces funcionarán).
+        <div id="formError" class="error-message" style="display: none;"></div>
+    </div>
+
+    <div id="resultsArea">
+        <div class="empty-state">
+            <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.6;"></i>
+            <p style="margin-top: 0.8rem;">Introduce un correo y selecciona una plataforma.<br>Se mostrarán los últimos 5 códigos OTP.</p>
         </div>
     </div>
-    <div id="resultsContainer" class="results-container"></div>
+    <div class="footer">
+        <i class="fas fa-external-link-alt"></i> Los enlaces del correo se abrirán en una nueva pestaña.
+    </div>
 </div>
 
 <script>
     const form = document.getElementById('searchForm');
-    const resultsDiv = document.getElementById('resultsContainer');
-    const formError = document.getElementById('formError');
-
-    let currentCorreos = [];
+    const resultsDiv = document.getElementById('resultsArea');
+    const errorDiv = document.getElementById('formError');
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const plataforma = document.getElementById('plataforma').value;
-        const correo = document.getElementById('correo').value;
+        const correo = document.getElementById('correo').value.trim();
 
         if (!plataforma) { mostrarError('Selecciona una plataforma'); return; }
         if (!correo || !correo.includes('@')) { mostrarError('Ingresa un correo electrónico válido'); return; }
 
-        resultsDiv.innerHTML = '<div class="loading">🔍 Buscando códigos, por favor espera...</div>';
-        formError.style.display = 'none';
+        resultsDiv.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> Buscando códigos...</div>`;
+        errorDiv.style.display = 'none';
 
         try {
             const response = await fetch('/buscar-json', {
@@ -237,111 +310,77 @@
                 body: JSON.stringify({ plataforma, correo })
             });
             const data = await response.json();
-            if (data.error) { mostrarError(data.error); resultsDiv.innerHTML = ''; return; }
+            if (data.error) {
+                mostrarError(data.error);
+                resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>${data.error}</p></div>`;
+                return;
+            }
             if (data.success) {
-                currentCorreos = data.correos;
-                renderTabla(data);
-            } else { mostrarError('Error inesperado'); resultsDiv.innerHTML = ''; }
+                renderResultados(data);
+            } else {
+                mostrarError('Error inesperado del servidor');
+                resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-bug"></i><p>Error al procesar la solicitud.</p></div>`;
+            }
         } catch (err) {
             console.error(err);
             mostrarError('Error de conexión con el servidor');
-            resultsDiv.innerHTML = '';
+            resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-plug"></i><p>No se pudo conectar.</p></div>`;
         }
     });
 
     function mostrarError(msg) {
-        formError.textContent = msg;
-        formError.style.display = 'block';
-        setTimeout(() => { formError.style.display = 'none'; }, 5000);
+        errorDiv.textContent = msg;
+        errorDiv.style.display = 'block';
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
     }
 
-    function renderTabla(data) {
+    // ⭐ FUNCIÓN RENDERIZADO CORREGIDA – sin errores visuales ⭐
+    function renderResultados(data) {
         const { plataforma, correos, correoBuscado } = data;
-        const color = plataforma.color;
-
-        if (correos.length === 0) {
-            resultsDiv.innerHTML = `<div class="empty"><p>😕 No se encontraron correos para <strong>${escapeHtml(correoBuscado)}</strong> en ${plataforma.nombre}.</p></div>`;
+        if (!correos || correos.length === 0) {
+            resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-ban"></i><p>No se encontraron correos para <strong>${escapeHtml(correoBuscado)}</strong> en ${plataforma.nombre}</p></div>`;
             return;
         }
 
         let html = `
-            <div style="margin-bottom: 15px; text-align: center;">
-                <div class="stats" style="border-left: 4px solid ${color};">📧 <strong>${correos.length}</strong> últimos correos encontrados para <strong>${escapeHtml(correoBuscado)}</strong> (${plataforma.nombre})</div>
+            <div class="stats-red">
+                <i class="fas fa-envelope"></i> ${correos.length} resultado(s) · <strong>${escapeHtml(correoBuscado)}</strong> · ${plataforma.nombre} · <span style="background:rgba(255,255,255,0.2); padding:0.2rem 0.6rem; border-radius:2rem;">últimos 5</span>
             </div>
-            <div class="table-wrapper">
+            <div class="table-container">
                 <table>
                     <thead>
-                        <tr><th>Asunto</th><th>Hora de Llegada</th><th>Acción</th></tr>
+                        <tr><th>Asunto</th><th>Fecha</th><th>Acción</th></tr>
                     </thead>
                     <tbody>
         `;
 
         correos.forEach((correo, idx) => {
-            let fechaMostrar = correo.date;
-            try {
-                const fecha = new Date(correo.date);
-                if (!isNaN(fecha)) {
-                    fechaMostrar = fecha.toLocaleString('es-ES', { 
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit', second: '2-digit'
-                    }).replace(/\//g, '-');
-                }
-            } catch(e) {}
-
+            let fecha = correo.date;
+            try { fecha = new Date(correo.date).toLocaleString(); } catch(e) {}
             html += `
                 <tr>
-                    <td>${escapeHtml(correo.subject)}</span></td>
-                    <td>${escapeHtml(fechaMostrar)}</span></td>
-                    <td><button class="btn-ver" data-index="${idx}">Ver</button></span></td>
+                    <td>${escapeHtml(correo.subject)}</td>
+                    <td>${escapeHtml(fecha)}</td>
+                    <td><button class="btn-view-netflix" data-index="${idx}"><i class="fas fa-eye"></i> Ver</button></td>
                 </tr>
             `;
         });
 
-        html += `</tbody></table></div>`;
+        html += `</tbody></div>`;
         resultsDiv.innerHTML = html;
 
-        document.querySelectorAll('.btn-ver').forEach(btn => {
+        // Asignar eventos a los botones Ver
+        document.querySelectorAll('.btn-view-netflix').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = btn.getAttribute('data-index');
-                const correo = currentCorreos[idx];
-                abrirCorreoEnNuevaPestana(correo);
+                const correo = correos[idx];
+                const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Correo OTP</title><style>body{background:#0B0E16;color:#EFF3F8;padding:1rem;font-family:system-ui,'Inter',sans-serif;} .card{max-width:700px;margin:auto;background:#141A24;padding:2rem;border-radius:2rem;}</style></head><body><div class="card">${correo.body}</div></body></html>`;
+                const blob = new Blob([fullHtml], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
             });
         });
-    }
-
-    function abrirCorreoEnNuevaPestana(correo) {
-        // Construir un documento HTML completo a partir del contenido del correo
-        let contenidoHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${escapeHtml(correo.subject)}</title>
-                <style>
-                    body {
-                        margin: 20px;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                        background: white;
-                        line-height: 1.5;
-                    }
-                    img { max-width: 100%; height: auto; }
-                    table { max-width: 100%; }
-                    a { color: #E50914; }
-                </style>
-            </head>
-            <body>
-                ${correo.body || `<p><em>No se pudo extraer el contenido de este correo.</em></p><p>${escapeHtml(correo.snippet || '')}</p>`}
-            </body>
-            </html>
-        `;
-
-        // Crear un Blob y una URL para abrir en nueva pestaña
-        const blob = new Blob([contenidoHtml], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        // Liberar la URL después de un tiempo (no es crítico)
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
 
     function escapeHtml(str) {

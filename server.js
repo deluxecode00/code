@@ -207,25 +207,24 @@ app.get('/auth/google', (req, res) => {
 });
 
 app.get('/auth/google/callback', async (req, res) => {
-  const { code } = req.query;
-  if (!code) return res.send('No se recibió código.');
-  try {
-    const { tokens } = await oauth2Client.getToken(code);
-    // Mostrar en consola
-    console.log('🔑 Tokens obtenidos. Cópialos y agrégalos como variable GMAIL_TOKENS en Railway.');
-    console.log('GMAIL_TOKENS=' + JSON.stringify(tokens));
-    // Mostrar en la página para copiar fácilmente
-    res.send(`
-      <h1>✅ Autenticación exitosa</h1>
-      <p>Copia el siguiente texto y agrégalo como variable <strong>GMAIL_TOKENS</strong> en Railway (pestaña Variables):</p>
-      <textarea rows="4" cols="80" style="width:100%">${JSON.stringify(tokens)}</textarea>
-      <br><br>
-      <a href="/">Volver al inicio</a>
-    `);
-  } catch (error) {
-    console.error(error);
-    res.send('Error al autenticar: ' + error.message);
-  }
+    const { code } = req.query;
+    if (!code) return res.send('No se recibió código.');
+    try {
+        const { tokens } = await oauth2Client.getToken(code);
+        // Mostrar en consola
+        console.log('TOKENS:', JSON.stringify(tokens));
+        // Mostrar en la página para copiar fácilmente
+        res.send(`
+            <h1>✅ Autenticación exitosa</h1>
+            <p>Copia el siguiente texto y pégalo como valor de la variable <strong>GMAIL_TOKENS</strong> en Railway (pestaña Variables).</p>
+            <textarea rows="5" cols="100" style="width:100%; font-family:monospace;">${JSON.stringify(tokens)}</textarea>
+            <br><br>
+            <a href="/">Volver al inicio</a>
+        `);
+    } catch (error) {
+        console.error(error);
+        res.send('Error al autenticar: ' + error.message);
+    }
 });
 
 app.listen(PORT, () => {
