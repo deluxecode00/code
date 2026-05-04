@@ -38,7 +38,7 @@ const PLATAFORMAS = {
     nombre: 'Disney+',
     icono: '✨',
     color: '#1E3A8A',
-    asuntos: ['Tu código de verificación de Disney+', 'Disney+ código de acceso']
+    asuntos: ['Tu código de acceso único para Disney+', 'Disney+ código de acceso']
   },
   primevideo: {
     nombre: 'Prime Video',
