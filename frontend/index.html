@@ -488,32 +488,61 @@
     #resultsArea { margin-top: 22px; }
 
     .result-summary {
-      display: inline-grid;
-      grid-template-columns: auto auto auto;
-      align-items: center;
-      gap: 12px;
-      margin: 0 0 14px;
-      padding: 13px 16px;
-      border-radius: 16px;
-      background: linear-gradient(145deg, rgba(255,255,255,.10), rgba(10,14,24,.78));
-      border: 1px solid color-mix(in srgb, var(--accent, var(--red)) 45%, rgba(255,255,255,.12));
-      color: #fff;
-      box-shadow: 0 20px 42px rgba(0,0,0,.28),
-                  inset 4px 0 0 var(--accent, var(--red));
+      width: 100%;
+      margin: 0 0 16px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(9,13,22,.82);
+      box-shadow: 0 18px 44px rgba(0,0,0,.34);
       backdrop-filter: blur(14px);
     }
 
-    .result-summary span,
-    .result-summary em {
-      font-style: normal;
-      border-radius: 10px;
-      padding: 6px 9px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.10);
+    .result-summary-top {
+      padding: 12px 16px;
+      background: linear-gradient(90deg, var(--accent, var(--red)), #7a2337, #273c85);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
-    .result-summary strong {
-      letter-spacing: .01em;
+    .result-summary-top strong {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #fff;
+    }
+
+    .result-count {
+      font-size: 12px;
+      font-weight: 900;
+      padding: 6px 9px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .result-summary-body {
+      padding: 14px 16px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .result-email {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
     }
 
     .results-list {
@@ -676,6 +705,27 @@
       }
       .mode-label { text-align: center; }
       .brand-text span { display: none; }
+
+      .result-summary {
+        border-radius: 16px;
+        margin-bottom: 14px;
+      }
+
+      .result-summary-top {
+        padding: 11px 13px;
+      }
+
+      .result-summary-body {
+        padding: 12px 13px;
+      }
+
+      .result-email {
+        font-size: 15px;
+      }
+
+      .result-count {
+        font-size: 11px;
+      }
     }
   </style>
 </head>
@@ -890,9 +940,14 @@
 
       resultsArea.innerHTML = `
         <div class="result-summary" style="--accent:${plataforma.color}">
-          <span>${correos.length} resultado(s)</span>
-          <strong>${escapeHtml(correoBuscado)}</strong>
-          <em>${escapeHtml(plataforma.nombre)}</em>
+          <div class="result-summary-top">
+            <strong>Resultados</strong>
+            <span class="result-count">${correos.length} encontrado(s)</span>
+          </div>
+          <div class="result-summary-body">
+            <div class="result-email">${escapeHtml(correoBuscado)}</div>
+            <div class="result-meta">Servicio consultado: ${escapeHtml(plataforma.nombre)}</div>
+          </div>
         </div>
         <div class="results-list">${rows}</div>
       `;
