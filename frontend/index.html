@@ -998,13 +998,54 @@
     }
 
     function openEmail(correo) {
-      const subject = correo.subject || "Correo";
+      const subject = correo.subject || "Correo encontrado";
       const date = formatDate(correo.date);
       const from = cleanFrom(correo.from || "");
       const to = correoInput.value.trim();
       const plataforma = normalizePlatform(null, platformInput.value);
       const code = extractCode(correo);
+
       const originalBody = correo.body || escapeHtml(correo.snippet || "Sin contenido disponible.");
+
+      const emailDocument = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <base target="_blank">
+          <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              background: #ffffff;
+              color: #111827;
+              overflow-x: auto;
+            }
+
+            img {
+              max-width: 100%;
+              height: auto;
+            }
+
+            table {
+              max-width: 100%;
+            }
+          </style>
+        </head>
+        <body>
+          ${originalBody}
+        </body>
+        </html>
+      `;
+
+      const safeEmailDocument = JSON.stringify(emailDocument);
+      const safeCode = JSON.stringify(code || "");
+      const safeAccent = JSON.stringify(plataforma.color || "#e50914");
+      const safeIcon = JSON.stringify(plataforma.icono || "✉");
+      const safeService = JSON.stringify(plataforma.nombre || "Servicio");
+      const safeSubject = JSON.stringify(subject);
+      const safeMeta = JSON.stringify(`Para: ${to || "correo consultado"} · Recibido: ${date}${from ? " · De: " + from : ""}`);
 
       const fullHtml = `
         <!DOCTYPE html>
@@ -1014,15 +1055,11 @@
           <meta name="viewport" content="width=device-width,initial-scale=1">
           <title>${escapeHtml(subject)}</title>
           <link rel="preconnect" href="https://fonts.googleapis.com">
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
           <style>
             :root {
-              --bg-url: url('https://assets.nflxext.com/ffe/siteui/vlv3/5efeb1fd-55d2-4799-8d38-e59e15858b9c/web/US-en-20260427-TRIFECTA-perspective_41f184d6-95ac-455a-a049-9ac59f105aaa_large.jpg');
-              --red: #e50914;
-              --red2: #ff3040;
-              --text: #f8fafc;
-              --muted: #9ca3af;
-              --line: rgba(255,255,255,.11);
+              --accent: ${plataforma.color || "#e50914"};
+              --bg: url('https://assets.nflxext.com/ffe/siteui/vlv3/5efeb1fd-55d2-4799-8d38-e59e15858b9c/web/US-en-20260427-TRIFECTA-perspective_41f184d6-95ac-455a-a049-9ac59f105aaa_large.jpg');
             }
 
             * {
@@ -1033,12 +1070,11 @@
               margin: 0;
               min-height: 100vh;
               font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-              color: var(--text);
+              color: #f8fafc;
               background:
-                radial-gradient(circle at 12% 8%, rgba(229,9,20,.22), transparent 28%),
-                radial-gradient(circle at 82% 14%, rgba(0,168,255,.14), transparent 32%),
-                linear-gradient(rgba(0,0,0,.78), rgba(0,0,0,.90)),
-                var(--bg-url);
+                radial-gradient(circle at 10% 8%, color-mix(in srgb, var(--accent) 25%, transparent), transparent 30%),
+                linear-gradient(rgba(0,0,0,.80), rgba(0,0,0,.92)),
+                var(--bg);
               background-size: cover;
               background-position: center;
               background-attachment: fixed;
@@ -1051,16 +1087,16 @@
 
             .page {
               width: min(980px, calc(100% - 28px));
-              margin: 0 auto;
-              padding: 24px 0 44px;
+              margin: auto;
+              padding: 22px 0 42px;
             }
 
-            .viewer-top {
+            .top {
               display: flex;
-              align-items: center;
               justify-content: space-between;
+              align-items: center;
               gap: 14px;
-              margin-bottom: 18px;
+              margin-bottom: 16px;
             }
 
             .brand {
@@ -1070,160 +1106,126 @@
               min-width: 0;
             }
 
-            .brand-mark {
+            .logo {
               width: 42px;
               height: 42px;
               border-radius: 14px;
               display: grid;
               place-items: center;
-              background: linear-gradient(135deg, var(--red), var(--red2));
-              box-shadow: 0 16px 34px rgba(229,9,20,.28);
+              background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #fff));
+              box-shadow: 0 16px 34px color-mix(in srgb, var(--accent) 30%, transparent);
               flex: 0 0 auto;
             }
 
-            .brand-title {
-              min-width: 0;
-            }
-
-            .brand-title strong {
+            .brand strong {
               display: block;
               font-size: 15px;
-              letter-spacing: .01em;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
 
-            .brand-title span {
+            .brand span {
               display: block;
-              margin-top: 3px;
+              color: #aeb8ca;
               font-size: 12px;
-              color: #b7c1d3;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
+              margin-top: 3px;
             }
 
-            .top-actions {
+            .actions {
               display: flex;
-              align-items: center;
               gap: 8px;
-              flex: 0 0 auto;
             }
 
-            .icon-btn {
-              border: 1px solid var(--line);
-              color: #e5e7eb;
-              background: rgba(255,255,255,.06);
+            .btn {
+              border: 1px solid rgba(255,255,255,.12);
               border-radius: 13px;
               padding: 10px 12px;
-              font-size: 13px;
-              font-weight: 800;
-              backdrop-filter: blur(10px);
-              transition: .18s ease;
-            }
-
-            .icon-btn:hover {
-              background: rgba(255,255,255,.10);
-              transform: translateY(-1px);
-            }
-
-            .icon-btn.primary {
-              border: 0;
-              background: linear-gradient(135deg, var(--red), var(--red2));
-              box-shadow: 0 14px 30px rgba(229,9,20,.25);
+              background: rgba(255,255,255,.07);
               color: #fff;
+              font-weight: 850;
+              font-size: 13px;
+              backdrop-filter: blur(10px);
             }
 
-            .mail-card {
-              border-radius: 32px;
-              background: rgba(6,9,16,.70);
-              border: 1px solid rgba(255,255,255,.12);
-              box-shadow: 0 38px 110px rgba(0,0,0,.48);
+            .btn.primary {
+              border: 0;
+              background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #fff));
+              box-shadow: 0 14px 32px color-mix(in srgb, var(--accent) 25%, transparent);
+            }
+
+            .card {
+              border-radius: 30px;
+              background: rgba(6,10,18,.74);
+              border: 1px solid rgba(255,255,255,.13);
+              box-shadow: 0 38px 110px rgba(0,0,0,.50);
               backdrop-filter: blur(18px);
               overflow: hidden;
             }
 
-            .mail-summary {
+            .summary {
               display: grid;
               grid-template-columns: 1fr auto;
-              gap: 14px;
+              gap: 16px;
               align-items: center;
               padding: 18px 22px;
+              background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 18%, transparent), rgba(255,255,255,.035));
               border-bottom: 1px solid rgba(255,255,255,.09);
-              background:
-                linear-gradient(90deg, rgba(229,9,20,.14), rgba(255,255,255,.035));
             }
 
-            .mail-summary h1 {
+            .summary h1 {
               margin: 0;
               font-size: clamp(18px, 3vw, 26px);
               line-height: 1.2;
-              letter-spacing: -.02em;
+              letter-spacing: -.025em;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
 
-            .mail-summary p {
+            .summary p {
               margin: 7px 0 0;
-              color: var(--muted);
+              color: #aeb8ca;
               font-size: 13px;
-              line-height: 1.45;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
 
-            .service-pill {
-              border: 1px solid rgba(229,9,20,.35);
-              background: rgba(229,9,20,.15);
+            .pill {
+              border: 1px solid color-mix(in srgb, var(--accent) 45%, rgba(255,255,255,.12));
+              background: color-mix(in srgb, var(--accent) 16%, transparent);
               border-radius: 14px;
               padding: 10px 12px;
-              color: white;
-              font-size: 13px;
               font-weight: 900;
+              font-size: 13px;
               white-space: nowrap;
             }
 
-            .email-stage {
+            .stage {
               padding: 28px;
               background:
                 radial-gradient(circle at 50% 0%, rgba(255,255,255,.06), transparent 25%),
                 rgba(255,255,255,.025);
             }
 
-            .email-frame {
-              max-width: 760px;
-              margin: 0 auto;
-              background: #dcdcdc;
+            .frame-wrap {
+              max-width: 780px;
+              margin: auto;
+              background: #d7d7d7;
               border-radius: 18px;
-              padding: 24px;
+              padding: 20px;
               box-shadow: 0 28px 80px rgba(0,0,0,.34);
-              overflow: auto;
+              border: 1px solid rgba(255,255,255,.14);
             }
 
-            .email-paper {
+            iframe {
+              display: block;
+              width: 100%;
+              height: 760px;
+              border: 0;
               background: #fff;
-              color: #111827;
-              min-height: 280px;
               box-shadow: 0 18px 50px rgba(0,0,0,.16);
-              overflow: auto;
-            }
-
-            .email-paper img {
-              max-width: 100%;
-              height: auto;
-            }
-
-            .email-paper table {
-              max-width: 100%;
-            }
-
-            .email-original {
-              background: #fff;
-              color: #111827;
-              overflow: auto;
             }
 
             .toast {
@@ -1239,7 +1241,7 @@
               border-radius: 14px;
               padding: 12px 16px;
               box-shadow: 0 20px 60px rgba(0,0,0,.38);
-              transition: .2s ease;
+              transition: .2s;
               font-weight: 800;
             }
 
@@ -1258,93 +1260,86 @@
                 padding: 14px 0 30px;
               }
 
-              .viewer-top {
+              .top {
                 align-items: flex-start;
               }
 
-              .brand-title span {
+              .brand span {
                 display: none;
               }
 
-              .top-actions {
-                gap: 6px;
-              }
-
-              .icon-btn {
+              .btn {
                 padding: 9px 10px;
                 font-size: 12px;
               }
 
-              .mail-card {
-                border-radius: 24px;
+              .card {
+                border-radius: 23px;
               }
 
-              .mail-summary {
+              .summary {
                 grid-template-columns: 1fr;
                 padding: 16px;
               }
 
-              .mail-summary h1 {
+              .summary h1 {
                 white-space: normal;
                 font-size: 20px;
               }
 
-              .mail-summary p {
+              .summary p {
                 white-space: normal;
               }
 
-              .service-pill {
+              .pill {
                 width: max-content;
               }
 
-              .email-stage {
+              .stage {
                 padding: 10px;
               }
 
-              .email-frame {
+              .frame-wrap {
                 padding: 8px;
                 border-radius: 14px;
               }
 
-              .email-paper {
-                min-height: auto;
+              iframe {
+                height: 680px;
               }
             }
           </style>
         </head>
+
         <body>
           <main class="page">
-            <header class="viewer-top">
+            <header class="top">
               <div class="brand">
-                <div class="brand-mark">✉</div>
-                <div class="brand-title">
+                <div class="logo" id="logo"></div>
+                <div>
                   <strong>CodePremium Mail Viewer</strong>
                   <span>Vista original del correo</span>
                 </div>
               </div>
 
-              <div class="top-actions">
-                <button class="icon-btn primary" id="copyCodeBtn" type="button">Copiar código</button>
-                <button class="icon-btn" onclick="window.close()" type="button">Cerrar</button>
+              <div class="actions">
+                <button class="btn primary" id="copyBtn" type="button">Copiar código</button>
+                <button class="btn" onclick="window.close()" type="button">Cerrar</button>
               </div>
             </header>
 
-            <section class="mail-card">
-              <div class="mail-summary">
+            <section class="card">
+              <div class="summary">
                 <div>
-                  <h1>${escapeHtml(subject)}</h1>
-                  <p>Para: ${escapeHtml(to || "correo consultado")} · Recibido: ${escapeHtml(date)}${from ? " · De: " + escapeHtml(from) : ""}</p>
+                  <h1 id="subject"></h1>
+                  <p id="meta"></p>
                 </div>
-                <div class="service-pill">${escapeHtml(plataforma.nombre)}</div>
+                <div class="pill" id="pill"></div>
               </div>
 
-              <div class="email-stage">
-                <div class="email-frame">
-                  <article class="email-paper">
-                    <div class="email-original">
-                      ${originalBody}
-                    </div>
-                  </article>
+              <div class="stage">
+                <div class="frame-wrap">
+                  <iframe id="frame" title="Correo original"></iframe>
                 </div>
               </div>
             </section>
@@ -1353,8 +1348,22 @@
           <div class="toast" id="toast">Código copiado</div>
 
           <script>
-            const detectedCode = ${JSON.stringify(code)};
-            const copyBtn = document.getElementById("copyCodeBtn");
+            const emailDocument = ${safeEmailDocument};
+            const detectedCode = ${safeCode};
+            const accent = ${safeAccent};
+            const icon = ${safeIcon};
+            const service = ${safeService};
+            const subjectText = ${safeSubject};
+            const metaText = ${safeMeta};
+
+            document.documentElement.style.setProperty("--accent", accent);
+            document.getElementById("logo").textContent = icon;
+            document.getElementById("subject").textContent = subjectText;
+            document.getElementById("meta").textContent = metaText;
+            document.getElementById("pill").textContent = service;
+            document.getElementById("frame").srcdoc = emailDocument;
+
+            const copyBtn = document.getElementById("copyBtn");
             const toast = document.getElementById("toast");
 
             if (!detectedCode) {
@@ -1369,9 +1378,9 @@
               try {
                 await navigator.clipboard.writeText(detectedCode);
                 toast.classList.add("show");
-                setTimeout(() => toast.classList.remove("show"), 1600);
+                setTimeout(() => toast.classList.remove("show"), 1500);
               } catch (error) {
-                copyBtn.textContent = "Código: " + detectedCode;
+                alert("Código: " + detectedCode);
               }
             });
           <\/script>
