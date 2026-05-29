@@ -7,6 +7,14 @@
     {
       "source": "/health",
       "destination": "https://code-ylhz.onrender.com/health"
+    },
+    {
+      "source": "/auth/(.*)",
+      "destination": "https://code-ylhz.onrender.com/auth/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

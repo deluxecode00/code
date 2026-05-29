@@ -1,397 +1,988 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CONSULTA TU CÓDIGO · Buscador OTP</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodePremium · Consulta de Acceso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-url: url('https://assets.nflxext.com/ffe/siteui/vlv3/5efeb1fd-55d2-4799-8d38-e59e15858b9c/web/US-en-20260427-TRIFECTA-perspective_41f184d6-95ac-455a-a049-9ac59f105aaa_large.jpg');
+      --red: #e50914;
+      --red2: #ff3040;
+      --blue: #00a8ff;
+      --green: #12d18e;
+      --text: #f8fafc;
+      --muted: #aeb8ca;
+      --line: rgba(255,255,255,.12);
+      --panel: rgba(10,14,24,.76);
+      --panel2: rgba(12,16,28,.86);
+      --shadow: 0 28px 90px rgba(0,0,0,.42);
+    }
 
-        body {
-            background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)),
-                        url('https://assets.nflxext.com/ffe/siteui/vlv3/5efeb1fd-55d2-4799-8d38-e59e15858b9c/web/US-en-20260427-TRIFECTA-perspective_41f184d6-95ac-455a-a049-9ac59f105aaa_large.jpg');
-            background-size: cover;
-            background-attachment: fixed;
-            background-position: center;
-            font-family: 'Inter', sans-serif;
-            color: #EDF2F7;
-            padding: 1.5rem 1rem;
-            min-height: 100vh;
-        }
+    * { box-sizing: border-box; }
 
-        .container { max-width: 800px; margin: 0 auto; }
+    html { scroll-behavior: smooth; }
 
-        .card {
-            background: rgba(16, 20, 28, 0.75);
-            backdrop-filter: blur(12px);
-            border-radius: 2rem;
-            padding: 1.8rem 1.5rem;
-            border: 1px solid rgba(229, 9, 20, 0.25);
-            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5);
-            margin-bottom: 2rem;
-        }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 10%, rgba(229,9,20,.22), transparent 28%),
+        radial-gradient(circle at 78% 18%, rgba(0,168,255,.18), transparent 32%),
+        linear-gradient(rgba(0,0,0,.78), rgba(0,0,0,.88)),
+        var(--bg-url);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 1.8rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 0.8rem;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1.6rem;
-            font-weight: 700;
-        }
-        .logo i { font-size: 1.8rem; color: #E50914; }
-        .logo span {
-            background: linear-gradient(120deg, #FFFFFF, #E50914);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-transform: uppercase;
-        }
-        .badge {
-            background: rgba(229, 9, 20, 0.2);
-            padding: 0.25rem 0.7rem;
-            border-radius: 2rem;
-            font-size: 0.65rem;
-            border: 1px solid rgba(229, 9, 20, 0.4);
-        }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
 
-        .form-vertical { display: flex; flex-direction: column; gap: 1.6rem; }
-        .field { width: 100%; }
-        label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 500;
-            color: #cdd3e6;
-            display: block;
-            margin-bottom: 0.5rem;
-            margin-left: 0.2rem;
-        }
-        .input-group { position: relative; width: 100%; }
-        .input-group i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #8a92a8;
-            font-size: 1rem;
-            pointer-events: none;
-            z-index: 2;
-        }
-        select, input {
-            width: 100%;
-            background: #0C0F17cc;
-            border: 1.5px solid #3a4050;
-            border-radius: 0.75rem;
-            padding: 0.85rem 1rem 0.85rem 2.8rem;
-            font-size: 0.95rem;
-            color: #F0F3FA;
-            transition: all 0.2s;
-            appearance: none;
-            -webkit-appearance: none;
-            cursor: pointer;
-        }
-        select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1rem;
-            padding-right: 2.5rem;
-        }
-        select:focus, input:focus {
-            outline: none;
-            border-color: #E50914;
-            background: #0C0F17;
-        }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
 
-        .btn-netflix {
-            background: #E50914;
-            border: none;
-            padding: 0.9rem 1.5rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            font-size: 1rem;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            cursor: pointer;
-            transition: background 0.2s ease;
-            width: 100%;
-            margin-top: 0.5rem;
-        }
-        .btn-netflix:hover { background: #b80710; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
 
-        .btn-view-netflix {
-            background: #E50914;
-            border: none;
-            padding: 0.4rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            font-size: 0.7rem;
-            color: white;
-            cursor: pointer;
-            transition: background 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .btn-view-netflix:hover { background: #b80710; }
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--red), #ff5260);
+      box-shadow: 0 16px 34px rgba(229,9,20,.30);
+      font-size: 20px;
+    }
 
-        .stats-red {
-            background: #E50914;
-            color: white;
-            padding: 0.6rem 1rem;
-            border-radius: 2rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
-            flex-wrap: wrap;
-        }
-        .table-container {
-            overflow-x: auto;
-            border-radius: 1.2rem;
-            margin-bottom: 1rem;
-            background: rgba(12, 15, 23, 0.6);
-            backdrop-filter: blur(4px);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 400px;
-        }
-        th {
-            text-align: left;
-            padding: 0.9rem 0.7rem;
-            background: rgba(8, 10, 15, 0.8);
-            color: #E50914;
-            font-weight: 600;
-            font-size: 0.75rem;
-        }
-        td {
-            padding: 0.8rem 0.7rem;
-            border-top: 1px solid #2a3040;
-            color: #e2e8f0;
-            font-size: 0.8rem;
-        }
-        .empty-state {
-            background: rgba(15, 19, 28, 0.85);
-            backdrop-filter: blur(8px);
-            border-radius: 1.2rem;
-            padding: 2rem 1rem;
-            text-align: center;
-            color: #cbd5e6;
-        }
-        .error-message {
-            background: rgba(229, 9, 20, 0.15);
-            border-left: 3px solid #E50914;
-            padding: 0.7rem;
-            border-radius: 1rem;
-            margin-top: 1rem;
-            font-size: 0.75rem;
-            backdrop-filter: blur(4px);
-        }
-        .footer {
-            margin-top: 1.5rem;
-            text-align: center;
-            font-size: 0.65rem;
-            color: #b9c2d9;
-        }
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 1.5rem;
-            color: #cdd6f0;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .fa-spinner { animation: spin 1s linear infinite; }
+    .brand-text strong {
+      display: block;
+      font-size: 16px;
+      letter-spacing: .02em;
+    }
 
-        @media (max-width: 550px) {
-            body { padding: 1rem; }
-            .card { padding: 1.5rem 1rem; }
-            .stats-red { font-size: 0.7rem; }
-            .btn-view-netflix { padding: 0.3rem 0.8rem; font-size: 0.65rem; }
-            .btn-netflix { padding: 0.8rem 1rem; font-size: 0.9rem; }
-        }
-    </style>
+    .brand-text span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .mode-panel {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+
+    .mode-label {
+      color: #dbe4f2;
+      font-size: 13px;
+      padding-left: 10px;
+      white-space: nowrap;
+    }
+
+    .mode-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .mode-btn {
+      border: 0;
+      color: #cbd5e1;
+      background: transparent;
+      border-radius: 999px;
+      padding: 9px 13px;
+      font-weight: 800;
+      font-size: 13px;
+      transition: .18s ease;
+    }
+
+    .mode-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      box-shadow: 0 12px 28px rgba(229,9,20,.28);
+    }
+
+    .mode-title {
+      text-align: center;
+      margin: 0 0 22px;
+      color: #dbe4f2;
+      font-size: 14px;
+      letter-spacing: .02em;
+    }
+
+    .mode-title strong { color: white; }
+    .mode-title span { color: #ff5c68; }
+
+    /* Landing / Premium */
+    .hero {
+      min-height: 190px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 34px;
+      padding: 34px;
+      background: linear-gradient(135deg, rgba(10,13,22,.92), rgba(14,18,29,.74));
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 82% 20%, rgba(229,9,20,.20), transparent 28%),
+                  radial-gradient(circle at 60% 86%, rgba(0,168,255,.14), transparent 26%);
+      pointer-events: none;
+    }
+
+    .hero > * { position: relative; z-index: 1; }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.07);
+      color: #dbe4f2;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 66px);
+      line-height: .95;
+      letter-spacing: -.05em;
+      margin: 0;
+      max-width: 790px;
+    }
+
+    .hero p {
+      max-width: 720px;
+      color: #b8c1d1;
+      line-height: 1.7;
+      margin: 18px 0 0;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin: 24px 0;
+    }
+
+    .info-card {
+      min-height: 248px;
+      padding: 26px;
+      border-radius: 28px;
+      background: rgba(15,18,27,.72);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    .info-card:first-child {
+      border-color: rgba(229,9,20,.60);
+      box-shadow: 0 0 0 1px rgba(229,9,20,.15), 0 30px 70px rgba(229,9,20,.13);
+    }
+
+    .iconbox {
+      width: 62px;
+      height: 62px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-size: 27px;
+      font-weight: 900;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #fff));
+      box-shadow: 0 20px 38px color-mix(in srgb, var(--accent) 24%, transparent);
+    }
+
+    .info-card h2 { margin: 0 0 14px; font-size: 22px; }
+    .info-card p { color: #b8c1d1; line-height: 1.55; margin: 0; }
+
+    .ticks {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 0;
+      display: grid;
+      gap: 12px;
+      color: #d7deeb;
+    }
+
+    .ticks li::before {
+      content: "✓";
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 10px;
+      color: #02130c;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .search-band {
+      border-top: 3px solid;
+      border-image: linear-gradient(90deg, var(--red), var(--blue)) 1;
+      border-radius: 28px;
+      padding: 32px;
+      background: rgba(12,16,28,.82);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+    }
+
+    .search-band h2 {
+      text-align: center;
+      margin: 0 0 22px;
+      font-size: 24px;
+    }
+
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .service {
+      border: 1px solid rgba(255,255,255,.12);
+      color: #dbe4f2;
+      background: rgba(9,13,22,.64);
+      border-radius: 22px;
+      padding: 14px;
+      min-height: 92px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+      justify-content: center;
+      transition: .2s transform, .2s border, .2s background;
+    }
+
+    .service:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,.24);
+    }
+
+    .service.active {
+      border-color: var(--accent, var(--red));
+      background: linear-gradient(145deg, color-mix(in srgb, var(--accent, var(--red)) 18%, transparent), rgba(15,18,27,.72));
+    }
+
+    .service .ico {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: var(--accent, var(--red));
+      color: white;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 14px 30px color-mix(in srgb, var(--accent, var(--red)) 32%, transparent);
+    }
+
+    .service strong { font-size: 14px; }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .input-wrap { position: relative; }
+    .input-wrap span {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #8ea0b8;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.14);
+      outline: 0;
+      color: var(--text);
+      background: rgba(4,8,16,.72);
+      border-radius: 18px;
+      padding: 17px 18px 17px 50px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    input:focus {
+      border-color: rgba(255,255,255,.32);
+      box-shadow: 0 0 0 4px rgba(255,255,255,.06);
+    }
+
+    .primary-btn {
+      border: 0;
+      color: white;
+      font-weight: 850;
+      border-radius: 18px;
+      padding: 17px 24px;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      box-shadow: 0 18px 36px rgba(229,9,20,.32);
+      transition: .18s transform, .18s filter;
+      min-width: 190px;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+
+    /* Minimal / Rápida */
+    body[data-mode="minimal"] .page {
+      width: min(960px, calc(100% - 32px));
+    }
+
+    body[data-mode="minimal"] .hero,
+    body[data-mode="minimal"] .cards {
+      display: none;
+    }
+
+    body[data-mode="minimal"] .search-band {
+      margin-top: 28px;
+      padding: 42px;
+      border-radius: 36px;
+      border: 1px solid rgba(255,255,255,.11);
+      background: rgba(6,10,18,.84);
+      box-shadow: 0 36px 100px rgba(0,0,0,.45);
+    }
+
+    body[data-mode="minimal"] .search-band h2 {
+      font-size: clamp(34px, 6vw, 78px);
+      line-height: .95;
+      letter-spacing: -.05em;
+      margin-bottom: 10px;
+    }
+
+    body[data-mode="minimal"] .search-band h2::after {
+      content: "Versión limpia para buscar más rápido, especialmente en móvil.";
+      display: block;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: normal;
+      line-height: 1.7;
+      color: var(--muted);
+      max-width: 620px;
+      margin: 16px auto 26px;
+    }
+
+    body[data-mode="minimal"] .service-grid {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    body[data-mode="minimal"] .service {
+      min-height: auto;
+      width: auto;
+      flex-direction: row;
+      border-radius: 999px;
+      padding: 10px 14px;
+    }
+
+    body[data-mode="minimal"] .service .ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      font-size: 14px;
+    }
+
+    body[data-mode="minimal"] .search-row {
+      grid-template-columns: 1fr 190px;
+    }
+
+    body[data-mode="minimal"] .results-list {
+      gap: 0;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    body[data-mode="minimal"] .result-item {
+      border-radius: 0;
+      border: 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.045);
+    }
+
+    /* Results */
+    #resultsArea { margin-top: 22px; }
+
+    .result-summary {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 14px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent, var(--red)), #ff4d5a);
+      color: #fff;
+      box-shadow: 0 16px 34px color-mix(in srgb, var(--accent, var(--red)) 22%, transparent);
+    }
+
+    .result-summary span,
+    .result-summary em {
+      font-style: normal;
+      background: rgba(255,255,255,.17);
+      border-radius: 999px;
+      padding: 5px 9px;
+    }
+
+    .results-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 14px;
+      background: rgba(11,16,27,.76);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 22px;
+      padding: 14px 16px;
+      backdrop-filter: blur(14px);
+    }
+
+    .result-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .result-icon {
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--accent, var(--red)) 22%, transparent);
+      color: #fff;
+    }
+
+    .result-item h3 {
+      margin: 0;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-item p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .code-pill {
+      font-weight: 900;
+      letter-spacing: 2px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      white-space: nowrap;
+    }
+
+    .view-btn {
+      border: 0;
+      border-radius: 14px;
+      padding: 11px 14px;
+      color: white;
+      font-weight: 800;
+      background: var(--accent, var(--red));
+    }
+
+    .loading-card,
+    .error-card,
+    .empty-card {
+      margin-top: 18px;
+      padding: 28px;
+      border-radius: 24px;
+      background: rgba(11,16,27,.76);
+      border: 1px solid rgba(255,255,255,.12);
+      color: #dbe4f2;
+      text-align: center;
+      backdrop-filter: blur(14px);
+    }
+
+    .loading-card span,
+    .empty-card p,
+    .error-card p {
+      display: block;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      margin: auto auto 10px;
+      border: 3px solid rgba(255,255,255,.12);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer-note {
+      text-align: center;
+      color: #95a3b9;
+      margin-top: 18px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .cards { grid-template-columns: 1fr; }
+      .info-card { min-height: auto; }
+      .search-row { grid-template-columns: 1fr; }
+      body[data-mode="minimal"] .search-row { grid-template-columns: 1fr; }
+      .primary-btn { width: 100%; }
+    }
+
+    @media (max-width: 860px) {
+      .service-grid { grid-template-columns: repeat(2, 1fr); }
+      .result-item { grid-template-columns: 1fr; }
+      .code-pill,
+      .view-btn { width: 100%; text-align: center; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .mode-panel { width: 100%; justify-content: space-between; }
+      .mode-buttons { flex: 1; }
+      .mode-btn { flex: 1; }
+    }
+
+    @media (max-width: 560px) {
+      body { background-attachment: scroll; }
+      .page {
+        width: min(100% - 20px, 1180px);
+        padding: 18px 0 30px;
+      }
+      .hero { padding: 24px; border-radius: 26px; }
+      .hero h1 { font-size: 38px; }
+      .search-band,
+      body[data-mode="minimal"] .search-band {
+        padding: 22px;
+        border-radius: 26px;
+      }
+      body[data-mode="minimal"] .search-band h2 {
+        font-size: 42px;
+      }
+      .service-grid,
+      body[data-mode="minimal"] .service-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      body[data-mode="minimal"] .service {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .mode-panel {
+        border-radius: 22px;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .mode-label { padding-left: 0; text-align: center; }
+      .brand-text span { display: none; }
+    }
+  </style>
 </head>
-<body>
-<div class="container">
-    <div class="card">
-        <div class="header">
-            <div class="logo">
-                <i class="fas fa-shield-haltered"></i>
-                <span>CONSULTA TU CÓDIGO</span>
-            </div>
-            <div class="badge">
-                <i class="fas fa-lock"></i> Seguro &nbsp;|&nbsp; <i class="fas fa-envelope"></i> Central
-            </div>
+
+<body data-mode="landing">
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">🔐</span>
+        <div class="brand-text">
+          <strong>CodePremium Access</strong>
+          <span>Consulta segura conectada a Render</span>
+        </div>
+      </div>
+
+      <div class="mode-panel" aria-label="Cambiar vista">
+        <span class="mode-label">Modo Landing&nbsp; | &nbsp;Modo Minimal</span>
+        <div class="mode-buttons">
+          <button class="mode-btn active" type="button" data-set-mode="landing">Premium</button>
+          <button class="mode-btn" type="button" data-set-mode="minimal">Rápida</button>
+        </div>
+      </div>
+    </header>
+
+    <p class="mode-title">Cambiar vista: <strong>Premium</strong> <span>|</span> <strong>Rápida</strong></p>
+
+    <section class="hero">
+      <span class="hero-kicker">✨ Panel profesional de búsqueda</span>
+      <h1>Consulta códigos con una experiencia premium.</h1>
+      <p>Diseño tipo landing, ideal para verse más formal en escritorio. En móvil puedes cambiar a la vista rápida para una experiencia más compacta.</p>
+    </section>
+
+    <section class="cards" aria-label="Beneficios">
+      <article class="info-card" style="--accent:#E50914">
+        <div class="iconbox">▦</div>
+        <h2>Netflix</h2>
+        <p>Accede a códigos de verificación y enlaces temporales desde un panel limpio.</p>
+        <ul class="ticks">
+          <li>Códigos temporales</li>
+          <li>Enlaces de verificación</li>
+          <li>Últimos correos</li>
+        </ul>
+      </article>
+
+      <article class="info-card" style="--accent:#1677ff">
+        <div class="iconbox">✦</div>
+        <h2>Disney+</h2>
+        <p>Obtén códigos de acceso único con una interfaz visualmente más ordenada.</p>
+        <ul class="ticks">
+          <li>Códigos de ingreso</li>
+          <li>Verificación rápida</li>
+          <li>Acceso inmediato</li>
+        </ul>
+      </article>
+
+      <article class="info-card" style="--accent:#00A8E1">
+        <div class="iconbox">＋</div>
+        <h2>Y muchas más</h2>
+        <p>Busca por servicio, correo y revisa resultados sin salir del mismo panel.</p>
+        <ul class="ticks">
+          <li>Múltiples servicios</li>
+          <li>Panel centralizado</li>
+          <li>Adaptado a móvil</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="search-band">
+      <h2>Consulta tu código de acceso</h2>
+
+      <form id="searchForm">
+        <input type="hidden" id="plataforma" value="disneyplus">
+
+        <div class="service-grid">
+          <button type="button" class="service" data-platform="netflix" style="--accent:#E50914">
+            <span class="ico">▦</span><strong>Netflix</strong>
+          </button>
+
+          <button type="button" class="service active" data-platform="disneyplus" style="--accent:#1677ff">
+            <span class="ico">✦</span><strong>Disney+</strong>
+          </button>
+
+          <button type="button" class="service" data-platform="primevideo" style="--accent:#00A8E1">
+            <span class="ico">▶</span><strong>Prime Video</strong>
+          </button>
+
+          <button type="button" class="service" data-platform="hbomax" style="--accent:#9b5cff">
+            <span class="ico">●</span><strong>HBO Max</strong>
+          </button>
+
+          <button type="button" class="service" data-platform="spotify" style="--accent:#1DB954">
+            <span class="ico">♪</span><strong>Spotify</strong>
+          </button>
         </div>
 
-        <form id="searchForm">
-            <div class="form-vertical">
-                <div class="field">
-                    <label><i class="fas fa-film"></i> Plataforma</label>
-                    <div class="input-group">
-                        <i class="fas fa-tv"></i>
-                        <select name="plataforma" id="plataforma" required>
-                            <option value="">-- Selecciona --</option>
-                            <option value="netflix">Netflix</option>
-                            <option value="primevideo">Prime Video</option>
-                            <option value="disneyplus">Disney+</option>
-                            <option value="hbomax">HBO Max</option>
-                            <option value="spotify">Spotify</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="field">
-                    <label><i class="fas fa-at"></i> CORREO DE LA PLATAFORMA</label>
-                    <div class="input-group">
-                        <i class="fas fa-envelope"></i>
-                        <input type="email" id="correo" name="correo" placeholder="usuario@ejemplo.com" required>
-                    </div>
-                </div>
-                <div class="field">
-                    <button type="submit" id="searchBtn" class="btn-netflix"><i class="fas fa-search"></i> Buscar códigos</button>
-                </div>
-            </div>
-        </form>
-        <div id="formError" class="error-message" style="display: none;"></div>
-    </div>
-
-    <div id="resultsArea">
-        <div class="empty-state">
-            <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.6;"></i>
-            <p style="margin-top: 0.8rem;">Introduce un correo y selecciona una plataforma.<br>Se mostrarán los últimos 5 códigos OTP.</p>
+        <div class="search-row">
+          <div class="input-wrap">
+            <span>✉</span>
+            <input id="correo" type="email" placeholder="Ingresa el correo electrónico registrado" required>
+          </div>
+          <button class="primary-btn" type="submit">🔎 Buscar código</button>
         </div>
-    </div>
-    <div class="footer">
-        <i class="fas fa-external-link-alt"></i> Los enlaces del correo se abrirán en una nueva pestaña.
-    </div>
-</div>
+      </form>
+    </section>
 
-<script>
-    const form = document.getElementById('searchForm');
-    const resultsDiv = document.getElementById('resultsArea');
-    const errorDiv = document.getElementById('formError');
+    <section id="resultsArea">
+      <div class="empty-card">
+        <strong>Resultados</strong>
+        <p>Selecciona un servicio, escribe el correo y presiona buscar.</p>
+      </div>
+    </section>
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const plataforma = document.getElementById('plataforma').value;
-        const correo = document.getElementById('correo').value.trim();
+    <p class="footer-note">Los correos se abrirán en una nueva pestaña. Backend activo en Render.</p>
+  </main>
 
-        if (!plataforma) { mostrarError('Selecciona una plataforma'); return; }
-        if (!correo || !correo.includes('@')) { mostrarError('Ingresa un correo electrónico válido'); return; }
+  <script>
+    const platformMap = {
+      netflix: { nombre: "Netflix", icono: "▦", color: "#E50914" },
+      disneyplus: { nombre: "Disney+", icono: "✦", color: "#1677ff" },
+      primevideo: { nombre: "Prime Video", icono: "▶", color: "#00A8E1" },
+      hbomax: { nombre: "HBO Max", icono: "●", color: "#9b5cff" },
+      spotify: { nombre: "Spotify", icono: "♪", color: "#1DB954" }
+    };
 
-        resultsDiv.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> Buscando códigos...</div>`;
-        errorDiv.style.display = 'none';
+    const body = document.body;
+    const resultsArea = document.getElementById("resultsArea");
+    const form = document.getElementById("searchForm");
+    const platformInput = document.getElementById("plataforma");
+    const correoInput = document.getElementById("correo");
 
-        try {
-            const response = await fetch('/buscar-json', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plataforma, correo })
-            });
-            const data = await response.json();
-            if (data.error) {
-                mostrarError(data.error);
-                resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>${data.error}</p></div>`;
-                return;
-            }
-            if (data.success) {
-                renderResultados(data);
-            } else {
-                mostrarError('Error inesperado del servidor');
-                resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-bug"></i><p>Error al procesar la solicitud.</p></div>`;
-            }
-        } catch (err) {
-            console.error(err);
-            mostrarError('Error de conexión con el servidor');
-            resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-plug"></i><p>No se pudo conectar.</p></div>`;
-        }
+    function chooseInitialMode() {
+      const saved = localStorage.getItem("codepremium-view-mode");
+      if (saved === "landing" || saved === "minimal") return saved;
+      return window.matchMedia("(max-width: 700px)").matches ? "minimal" : "landing";
+    }
+
+    function setMode(mode) {
+      body.dataset.mode = mode;
+      localStorage.setItem("codepremium-view-mode", mode);
+      document.querySelectorAll("[data-set-mode]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.setMode === mode);
+      });
+    }
+
+    document.querySelectorAll("[data-set-mode]").forEach(btn => {
+      btn.addEventListener("click", () => setMode(btn.dataset.setMode));
     });
 
-    function mostrarError(msg) {
-        errorDiv.textContent = msg;
-        errorDiv.style.display = 'block';
-        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-    }
+    setMode(chooseInitialMode());
 
-    // ⭐ FUNCIÓN RENDERIZADO CORREGIDA – sin errores visuales ⭐
-    function renderResultados(data) {
-        const { plataforma, correos, correoBuscado } = data;
-        if (!correos || correos.length === 0) {
-            resultsDiv.innerHTML = `<div class="empty-state"><i class="fas fa-ban"></i><p>No se encontraron correos para <strong>${escapeHtml(correoBuscado)}</strong> en ${plataforma.nombre}</p></div>`;
-            return;
+    document.querySelectorAll("[data-platform]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-platform]").forEach(x => x.classList.remove("active"));
+        btn.classList.add("active");
+        platformInput.value = btn.dataset.platform;
+      });
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const plataforma = platformInput.value;
+      const correo = correoInput.value.trim();
+
+      if (!plataforma) return renderError("Selecciona una plataforma.");
+      if (!correo || !correo.includes("@")) return renderError("Ingresa un correo electrónico válido.");
+
+      renderLoading();
+
+      try {
+        const response = await fetch("/buscar-json", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plataforma, correo })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          renderError(data.error);
+          return;
         }
 
-        let html = `
-            <div class="stats-red">
-                <i class="fas fa-envelope"></i> ${correos.length} resultado(s) · <strong>${escapeHtml(correoBuscado)}</strong> · ${plataforma.nombre} · <span style="background:rgba(255,255,255,0.2); padding:0.2rem 0.6rem; border-radius:2rem;">últimos 5</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr><th>Asunto</th><th>Fecha</th><th>Acción</th></tr>
-                    </thead>
-                    <tbody>
+        if (data.success) {
+          renderResults(data);
+          return;
+        }
+
+        renderError("El servidor respondió, pero no devolvió resultados válidos.");
+      } catch (error) {
+        console.error(error);
+        renderError("No se pudo conectar con el backend. Revisa que Render esté activo.");
+      }
+    });
+
+    function renderLoading() {
+      resultsArea.innerHTML = `
+        <div class="loading-card">
+          <div class="spinner"></div>
+          <strong>Buscando códigos...</strong>
+          <span>Consultando los últimos correos disponibles.</span>
+        </div>
+      `;
+    }
+
+    function renderError(message) {
+      resultsArea.innerHTML = `
+        <div class="error-card">
+          <strong>No se pudo completar la búsqueda</strong>
+          <p>${escapeHtml(message)}</p>
+        </div>
+      `;
+    }
+
+    function renderResults(data) {
+      const correos = data.correos || [];
+      const plataforma = normalizePlatform(data.plataforma, platformInput.value);
+      const correoBuscado = data.correoBuscado || correoInput.value.trim();
+
+      if (!correos.length) {
+        resultsArea.innerHTML = `
+          <div class="empty-card">
+            <strong>Sin resultados</strong>
+            <p>No se encontraron correos para <b>${escapeHtml(correoBuscado)}</b> en ${escapeHtml(plataforma.nombre)}.</p>
+          </div>
         `;
+        return;
+      }
 
-        correos.forEach((correo, idx) => {
-            let fecha = correo.date;
-            try { fecha = new Date(correo.date).toLocaleString(); } catch(e) {}
-            html += `
-                <tr>
-                    <td>${escapeHtml(correo.subject)}</td>
-                    <td>${escapeHtml(fecha)}</td>
-                    <td><button class="btn-view-netflix" data-index="${idx}"><i class="fas fa-eye"></i> Ver</button></td>
-                </tr>
-            `;
+      const rows = correos.map((correo, index) => {
+        const code = extractCode(correo);
+        const fecha = formatDate(correo.date);
+        const from = correo.from ? ` · ${escapeHtml(cleanFrom(correo.from))}` : "";
+
+        return `
+          <article class="result-item" style="--accent:${plataforma.color}">
+            <div class="result-main">
+              <span class="result-icon">${plataforma.icono}</span>
+              <div>
+                <h3>${escapeHtml(correo.subject || "Correo sin asunto")}</h3>
+                <p>${escapeHtml(fecha)}${from}</p>
+              </div>
+            </div>
+            <div class="code-pill">${code ? escapeHtml(code) : "Ver correo"}</div>
+            <button class="view-btn" type="button" data-index="${index}">Ver</button>
+          </article>
+        `;
+      }).join("");
+
+      resultsArea.innerHTML = `
+        <div class="result-summary" style="--accent:${plataforma.color}">
+          <span>${correos.length} resultado(s)</span>
+          <strong>${escapeHtml(correoBuscado)}</strong>
+          <em>${escapeHtml(plataforma.nombre)}</em>
+        </div>
+        <div class="results-list">${rows}</div>
+      `;
+
+      resultsArea.querySelectorAll(".view-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const correo = correos[Number(btn.dataset.index)];
+          openEmail(correo);
         });
-
-        html += `</tbody></div>`;
-        resultsDiv.innerHTML = html;
-
-        // Asignar eventos a los botones Ver
-        document.querySelectorAll('.btn-view-netflix').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = btn.getAttribute('data-index');
-                const correo = correos[idx];
-                const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Correo OTP</title><style>body{background:#0B0E16;color:#EFF3F8;padding:1rem;font-family:system-ui,'Inter',sans-serif;} .card{max-width:700px;margin:auto;background:#141A24;padding:2rem;border-radius:2rem;}</style></head><body><div class="card">${correo.body}</div></body></html>`;
-                const blob = new Blob([fullHtml], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
-                window.open(url, '_blank');
-                setTimeout(() => URL.revokeObjectURL(url), 10000);
-            });
-        });
+      });
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+    function normalizePlatform(platform, fallbackKey) {
+      if (platform && platform.nombre) {
+        return {
+          nombre: platform.nombre,
+          icono: platform.icono || platformMap[fallbackKey]?.icono || "✉",
+          color: platform.color || platformMap[fallbackKey]?.color || "#E50914"
+        };
+      }
+      return platformMap[fallbackKey] || platformMap.disneyplus;
     }
-</script>
+
+    function extractCode(correo) {
+      const text = stripHtml(`${correo.subject || ""} ${correo.snippet || ""} ${correo.body || ""}`);
+      const match = text.match(/\b\d{4,8}\b/);
+      return match ? match[0] : "";
+    }
+
+    function stripHtml(value) {
+      const div = document.createElement("div");
+      div.innerHTML = value || "";
+      return div.textContent || div.innerText || "";
+    }
+
+    function formatDate(value) {
+      if (!value) return "Fecha no disponible";
+      try {
+        return new Date(value).toLocaleString("es-PE", {
+          dateStyle: "short",
+          timeStyle: "short"
+        });
+      } catch (error) {
+        return value;
+      }
+    }
+
+    function cleanFrom(value) {
+      return String(value || "").replace(/<[^>]+>/g, "").trim();
+    }
+
+    function openEmail(correo) {
+      const fullHtml = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>Vista del correo</title>
+          <style>
+            body {
+              margin: 0;
+              background: #080b12;
+              color: #f8fafc;
+              font-family: Inter, system-ui, sans-serif;
+              padding: 24px;
+            }
+            .mail {
+              max-width: 760px;
+              margin: auto;
+              background: rgba(17,24,39,.94);
+              border: 1px solid rgba(255,255,255,.12);
+              border-radius: 28px;
+              padding: 30px;
+              box-shadow: 0 30px 80px rgba(0,0,0,.45);
+              overflow: auto;
+            }
+            img { max-width: 100%; height: auto; }
+            a { color: #60a5fa; }
+            p { line-height: 1.7; }
+          </style>
+        </head>
+        <body>
+          <div class="mail">${correo.body || escapeHtml(correo.snippet || "Sin contenido disponible.")}</div>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([fullHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    function escapeHtml(value) {
+      if (!value) return "";
+      return String(value).replace(/[&<>"]/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;"
+      }[char]));
+    }
+  </script>
 </body>
 </html>
