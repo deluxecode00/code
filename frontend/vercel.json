@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/buscar-json",
+      "destination": "https://code-ylhz.onrender.com/buscar-json"
+    },
+    {
+      "source": "/health",
+      "destination": "https://code-ylhz.onrender.com/health"
+    }
+  ]
+}
