@@ -136,7 +136,7 @@
 
     /* Landing / Premium */
     .hero {
-      min-height: 190px;
+      min-height: 170px;
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 34px;
       padding: 34px;
@@ -284,11 +284,12 @@
     .search-band {
       border-top: 3px solid;
       border-image: linear-gradient(90deg, var(--red), var(--blue)) 1;
-      border-radius: 28px;
+      border-radius: 24px;
       padding: 32px;
       background: rgba(12,16,28,.82);
       backdrop-filter: blur(16px);
       box-shadow: var(--shadow);
+      margin-top: 24px;
     }
 
     .search-band h2 {
@@ -307,42 +308,50 @@
     .service {
       border: 1px solid rgba(255,255,255,.12);
       color: #dbe4f2;
-      background: rgba(9,13,22,.64);
-      border-radius: 22px;
-      padding: 14px;
-      min-height: 92px;
+      background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(9,13,22,.70));
+      border-radius: 16px;
+      padding: 15px 12px;
+      min-height: 98px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
-      transition: .2s transform, .2s border, .2s background;
+      text-align: center;
+      transition: .2s transform, .2s border, .2s background, .2s box-shadow;
     }
 
     .service:hover {
-      transform: translateY(-3px);
-      border-color: rgba(255,255,255,.24);
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.25);
+      box-shadow: 0 18px 36px rgba(0,0,0,.22);
     }
 
     .service.active {
       border-color: var(--accent, var(--red));
-      background: linear-gradient(145deg, color-mix(in srgb, var(--accent, var(--red)) 18%, transparent), rgba(15,18,27,.72));
+      background: linear-gradient(145deg, color-mix(in srgb, var(--accent, var(--red)) 15%, transparent), rgba(15,18,27,.78));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, var(--red)) 18%, transparent),
+                  0 18px 38px color-mix(in srgb, var(--accent, var(--red)) 16%, transparent);
     }
 
     .service .ico {
       width: 42px;
       height: 42px;
-      border-radius: 14px;
+      border-radius: 12px;
       display: grid;
       place-items: center;
       background: var(--accent, var(--red));
       color: white;
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 900;
-      box-shadow: 0 14px 30px color-mix(in srgb, var(--accent, var(--red)) 32%, transparent);
+      box-shadow: 0 14px 30px color-mix(in srgb, var(--accent, var(--red)) 28%, transparent);
     }
 
-    .service strong { font-size: 14px; }
+    .service strong {
+      font-size: 14px;
+      line-height: 1.1;
+      text-align: center;
+    }
 
     .search-row {
       display: grid;
@@ -380,7 +389,7 @@
       border: 0;
       color: white;
       font-weight: 850;
-      border-radius: 18px;
+      border-radius: 14px;
       padding: 17px 24px;
       background: linear-gradient(135deg, var(--red), var(--red2));
       box-shadow: 0 18px 36px rgba(229,9,20,.32);
@@ -440,17 +449,20 @@
     }
 
     body[data-mode="minimal"] .service {
-      min-height: auto;
+      min-height: 50px;
       width: auto;
       flex-direction: row;
-      border-radius: 999px;
-      padding: 10px 14px;
+      border-radius: 16px;
+      padding: 10px 16px;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
     }
 
     body[data-mode="minimal"] .service .ico {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
       font-size: 14px;
     }
 
@@ -476,24 +488,32 @@
     #resultsArea { margin-top: 22px; }
 
     .result-summary {
-      display: inline-flex;
+      display: inline-grid;
+      grid-template-columns: auto auto auto;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       margin: 0 0 14px;
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--accent, var(--red)), #ff4d5a);
+      padding: 13px 16px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(255,255,255,.10), rgba(10,14,24,.78));
+      border: 1px solid color-mix(in srgb, var(--accent, var(--red)) 45%, rgba(255,255,255,.12));
       color: #fff;
-      box-shadow: 0 16px 34px color-mix(in srgb, var(--accent, var(--red)) 22%, transparent);
+      box-shadow: 0 20px 42px rgba(0,0,0,.28),
+                  inset 4px 0 0 var(--accent, var(--red));
+      backdrop-filter: blur(14px);
     }
 
     .result-summary span,
     .result-summary em {
       font-style: normal;
-      background: rgba(255,255,255,.17);
-      border-radius: 999px;
-      padding: 5px 9px;
+      border-radius: 10px;
+      padding: 6px 9px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .result-summary strong {
+      letter-spacing: .01em;
     }
 
     .results-list {
@@ -508,8 +528,8 @@
       gap: 14px;
       background: rgba(11,16,27,.76);
       border: 1px solid rgba(255,255,255,.10);
-      border-radius: 22px;
-      padding: 14px 16px;
+      border-radius: 16px;
+      padding: 15px 16px;
       backdrop-filter: blur(14px);
     }
 
@@ -557,11 +577,12 @@
 
     .view-btn {
       border: 0;
-      border-radius: 14px;
-      padding: 11px 14px;
+      border-radius: 12px;
+      padding: 11px 16px;
       color: white;
-      font-weight: 800;
-      background: var(--accent, var(--red));
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent, var(--red)), color-mix(in srgb, var(--accent, var(--red)) 72%, #ffffff));
+      box-shadow: 0 12px 26px color-mix(in srgb, var(--accent, var(--red)) 20%, transparent);
     }
 
     .loading-card,
@@ -635,7 +656,7 @@
       .search-band,
       body[data-mode="minimal"] .search-band {
         padding: 22px;
-        border-radius: 26px;
+        border-radius: 20px;
       }
       body[data-mode="minimal"] .search-band h2 {
         font-size: 42px;
@@ -683,41 +704,6 @@
       <span class="hero-kicker">✨ Panel seguro de consulta</span>
       <h1>Consulta tu código de acceso en segundos</h1>
       <p>Herramienta centralizada para localizar códigos autorizados, enlaces de confirmación y mensajes recientes usando únicamente el correo asociado al servicio.</p>
-    </section>
-
-    <section class="cards" aria-label="Beneficios">
-      <article class="info-card" style="--accent:#E50914">
-        <div class="iconbox">▦</div>
-        <h2>Netflix</h2>
-        <p>Encuentra mensajes recientes relacionados con verificación de cuenta, acceso temporal y confirmaciones importantes.</p>
-        <ul class="ticks">
-          <li>Códigos de verificación</li>
-          <li>Accesos temporales</li>
-          <li>Correos filtrados por servicio</li>
-        </ul>
-      </article>
-
-      <article class="info-card" style="--accent:#1677ff">
-        <div class="iconbox">✦</div>
-        <h2>Disney+</h2>
-        <p>Consulta códigos de ingreso y mensajes de autenticación vinculados al correo registrado en la plataforma.</p>
-        <ul class="ticks">
-          <li>Búsqueda por correo</li>
-          <li>Resultados recientes</li>
-          <li>Vista rápida del mensaje</li>
-        </ul>
-      </article>
-
-      <article class="info-card" style="--accent:#00A8E1">
-        <div class="iconbox">＋</div>
-        <h2>Cómo funciona</h2>
-        <p>Realiza la consulta en pocos pasos desde un panel simple, seguro y adaptado a cualquier dispositivo.</p>
-        <ol class="steps">
-          <li>Escribe el correo con el que inicias sesión en el servicio.</li>
-          <li>Selecciona el ícono correspondiente a la plataforma.</li>
-          <li>Presiona “Buscar código” y luego “Ver” para abrir el mensaje.</li>
-        </ol>
-      </article>
     </section>
 
     <section class="search-band">
