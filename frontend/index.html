@@ -762,7 +762,7 @@
 
         <div class="service-grid">
           <button type="button" class="service" data-platform="netflix" style="--accent:#E50914">
-            <span class="ico">▦</span><strong>${selectedPlatformLabel || 'Servicio'}</strong>
+            <span class="ico">▦</span><strong>Netflix</strong>
           </button>
 
           <button type="button" class="service active" data-platform="disneyplus" style="--accent:#1677ff">
@@ -803,17 +803,6 @@
   </main>
 
   <script>
-
-const platformThemes = {
-  netflix: { icon: "🎬", label: "Netflix" },
-  disney: { icon: "✨", label: "Disney+" },
-  prime: { icon: "▶️", label: "Prime Video" },
-  hbo: { icon: "🟣", label: "HBO Max" },
-  spotify: { icon: "🎵", label: "Spotify" },
-  generic: { icon: "📩", label: "Servicio" }
-};
-
-
     const platformMap = {
       netflix: { nombre: "Netflix", icono: "▦", color: "#E50914" },
       disneyplus: { nombre: "Disney+", icono: "✦", color: "#1677ff" },
@@ -1364,17 +1353,6 @@ const platformThemes = {
           <div class="toast" id="toast">Código copiado</div>
 
           <script>
-
-const platformThemes = {
-  netflix: { icon: "🎬", label: "Netflix" },
-  disney: { icon: "✨", label: "Disney+" },
-  prime: { icon: "▶️", label: "Prime Video" },
-  hbo: { icon: "🟣", label: "HBO Max" },
-  spotify: { icon: "🎵", label: "Spotify" },
-  generic: { icon: "📩", label: "Servicio" }
-};
-
-
             const detectedCode = ${JSON.stringify(code)};
             const copyBtn = document.getElementById("copyCodeBtn");
             const toast = document.getElementById("toast");
