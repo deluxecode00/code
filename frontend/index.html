@@ -88,6 +88,32 @@
       margin-top: 2px;
     }
 
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .admin-top-link {
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,.14);
+      color: #fff;
+      background: rgba(255,255,255,.07);
+      border-radius: 14px;
+      padding: 11px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      backdrop-filter: blur(12px);
+      transition: .18s ease;
+      white-space: nowrap;
+    }
+
+    .admin-top-link:hover {
+      background: rgba(255,255,255,.11);
+      transform: translateY(-1px);
+    }
+
     .mode-panel {
       display: inline-flex;
       align-items: center;
@@ -669,6 +695,8 @@
       .code-pill,
       .view-btn { width: 100%; text-align: center; }
       .topbar { align-items: flex-start; flex-direction: column; }
+      .topbar-actions { width: 100%; display: grid; grid-template-columns: auto 1fr; }
+      .admin-top-link { text-align: center; }
       .mode-panel { width: 100%; justify-content: space-between; }
       .mode-buttons { flex: 1; }
       .mode-btn { flex: 1; }
@@ -740,10 +768,14 @@
         </div>
       </div>
 
-      <div class="mode-panel" aria-label="Seleccionar vista">
-        <div class="mode-buttons">
-          <button class="mode-btn active" type="button" data-set-mode="landing">Premium</button>
-          <button class="mode-btn" type="button" data-set-mode="minimal">Rápida</button>
+      <div class="topbar-actions">
+        <a class="admin-top-link" href="/admin">Admin</a>
+
+        <div class="mode-panel" aria-label="Seleccionar vista">
+          <div class="mode-buttons">
+            <button class="mode-btn active" type="button" data-set-mode="landing">Premium</button>
+            <button class="mode-btn" type="button" data-set-mode="minimal">Rápida</button>
+          </div>
         </div>
       </div>
     </header>

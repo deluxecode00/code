@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CodePremium · Panel Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#e50914;
+  --bg:url('https://assets.nflxext.com/ffe/siteui/vlv3/5efeb1fd-55d2-4799-8d38-e59e15858b9c/web/US-en-20260427-TRIFECTA-perspective_41f184d6-95ac-455a-a049-9ac59f105aaa_large.jpg');
+  --text:#f8fafc;
+  --muted:#9ca3af;
+  --line:rgba(255,255,255,.12);
+  --panel:rgba(6,10,18,.78);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 12% 4%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 30%),
+    radial-gradient(circle at 82% 8%,rgba(0,168,255,.13),transparent 32%),
+    linear-gradient(rgba(0,0,0,.84),rgba(0,0,0,.94)),
+    var(--bg);
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.page{width:min(1120px,calc(100% - 28px));margin:auto;padding:24px 0 44px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-mark{
+  width:44px;height:44px;border-radius:15px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 68%,#fff));
+  box-shadow:0 18px 38px color-mix(in srgb,var(--accent) 26%,transparent);
+  flex:0 0 auto;
+}
+.brand h1{margin:0;font-size:18px;letter-spacing:-.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand p{margin:4px 0 0;color:#aeb8ca;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.actions{display:flex;gap:8px;align-items:center}
+.btn{
+  border:1px solid var(--line);
+  color:white;
+  background:rgba(255,255,255,.07);
+  border-radius:13px;
+  padding:10px 12px;
+  font-size:13px;
+  font-weight:850;
+  text-decoration:none;
+  backdrop-filter:blur(10px);
+  transition:.18s ease;
+}
+.btn:hover{background:rgba(255,255,255,.11);transform:translateY(-1px)}
+.btn.primary{
+  border:0;
+  background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 70%,#fff));
+  box-shadow:0 14px 32px color-mix(in srgb,var(--accent) 24%,transparent);
+}
+.card{
+  background:var(--panel);
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:30px;
+  box-shadow:0 38px 110px rgba(0,0,0,.50);
+  backdrop-filter:blur(18px);
+}
+input{
+  width:100%;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:15px;
+  background:rgba(0,0,0,.27);
+  color:white;
+  outline:none;
+  padding:13px 14px;
+}
+label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8px}
+.hero{width:min(760px,100%);margin:8px auto 22px;text-align:center}
+.hero h2{margin:0;font-size:clamp(34px,6vw,58px);line-height:.94;letter-spacing:-.085em}
+.hero p{margin:15px auto 0;width:min(600px,100%);color:#aeb8ca;line-height:1.6;font-size:14px}
+.service-board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.service-card{
+  border:1px solid rgba(255,255,255,.12);
+  color:white;
+  background:rgba(255,255,255,.055);
+  border-radius:22px;
+  padding:14px;
+  min-height:116px;
+  text-align:left;
+  transition:.18s ease;
+}
+.service-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.085)}
+.service-card.active{
+  border-color:color-mix(in srgb,var(--c) 60%,rgba(255,255,255,.12));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 18%,transparent),rgba(255,255,255,.045));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 17%,transparent);
+}
+.service-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.service-badge{
+  width:42px;height:42px;border-radius:15px;display:grid;place-items:center;
+  background:var(--c);
+  box-shadow:0 14px 28px color-mix(in srgb,var(--c) 25%,transparent);
+  font-weight:900;font-size:13px;
+}
+.service-card small{color:#9ca3af;font-weight:800;font-size:11px}
+.service-card b{display:block;margin-top:16px;font-size:14px;letter-spacing:-.02em}
+.workspace{overflow:hidden}
+.workspace-head{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:16px;
+  align-items:center;
+  padding:20px 22px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 18%,transparent),rgba(255,255,255,.035));
+  border-bottom:1px solid rgba(255,255,255,.09);
+}
+.workspace-head h3{margin:0;font-size:clamp(24px,4vw,38px);letter-spacing:-.07em;line-height:1}
+.workspace-head p{margin:8px 0 0;color:#aeb8ca;font-size:13px}
+.counter{
+  min-width:96px;height:74px;border-radius:22px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.10);
+  display:grid;place-items:center;
+}
+.counter strong{font-size:29px;line-height:1}
+.counter span{color:#9ca3af;font-size:12px;font-weight:800}
+.workspace-body{
+  padding:20px 22px;
+  display:grid;
+  grid-template-columns:1fr 310px;
+  gap:18px;
+}
+.add-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:16px}
+.subject-list{display:grid;gap:10px}
+.subject{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:16px;
+  padding:12px 13px;
+}
+.subject span{font-size:13px;line-height:1.35}
+.remove{border:0;width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,.09);color:white;flex:0 0 auto}
+.side{display:grid;gap:12px;align-content:start}
+.info{
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.055);
+  border-radius:20px;
+  padding:16px;
+}
+.info h4{margin:0 0 8px;font-size:15px}
+.info p{margin:0;color:#9ca3af;line-height:1.5;font-size:13px}
+.empty{
+  padding:24px;
+  text-align:center;
+  color:#9ca3af;
+  border:1px dashed rgba(255,255,255,.18);
+  border-radius:18px;
+}
+.toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(18px);
+  opacity:0;pointer-events:none;color:white;background:rgba(11,16,32,.96);
+  border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.38);transition:.2s;font-weight:800;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.login-wall{
+  position:fixed;
+  inset:0;
+  z-index:50;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:
+    radial-gradient(circle at 20% 0%,rgba(229,9,20,.25),transparent 34%),
+    linear-gradient(rgba(0,0,0,.88),rgba(0,0,0,.96)),
+    var(--bg);
+  background-size:cover;
+  background-position:center;
+}
+.login-card{
+  width:min(440px,100%);
+  padding:24px;
+  text-align:center;
+}
+.login-card .brand-mark{margin:0 auto 16px}
+.login-card h2{margin:0;font-size:34px;line-height:1;letter-spacing:-.065em}
+.login-card p{color:#aeb8ca;font-size:13px;line-height:1.55;margin:12px 0 18px}
+.login-card form{display:grid;gap:10px;text-align:left}
+.login-note{
+  margin-top:12px;
+  color:#9ca3af;
+  font-size:12px;
+  line-height:1.45;
+}
+.hidden{display:none!important}
+
+@media(max-width:960px){
+  .service-board{grid-template-columns:repeat(3,1fr)}
+  .workspace-head,.workspace-body{grid-template-columns:1fr}
+  .counter{width:max-content}
+}
+@media(max-width:760px){
+  body{background-attachment:scroll}
+  .page{width:min(100% - 16px,1120px);padding-top:14px}
+  .top{align-items:flex-start}
+  .brand p{display:none}
+  .btn{padding:9px 10px;font-size:12px}
+  .card{border-radius:24px}
+}
+@media(max-width:620px){
+  .service-board{grid-template-columns:1fr 1fr}
+  .service-card{min-height:104px}
+  .workspace-head,.workspace-body{padding:16px}
+  .add-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<div class="login-wall" id="loginWall">
+  <section class="card login-card">
+    <div class="brand-mark">🔐</div>
+    <h2>Acceso Admin</h2>
+    <p>Ingresa la clave para abrir el panel administrativo de reglas.</p>
+    <form id="loginForm">
+      <label>Clave admin</label>
+      <input id="adminPass" type="password" placeholder="Escribe la clave">
+      <button class="btn primary" type="submit">Entrar</button>
+    </form>
+    <div class="login-note">
+      Demo local: <b>admin123</b><br>
+      Para producción, la clave debe validarse desde Render.
+    </div>
+    <br>
+    <a class="btn" href="/">Volver al buscador</a>
+  </section>
+</div>
+
+<main class="page">
+<header class="top">
+  <div class="brand">
+    <div class="brand-mark">◆</div>
+    <div>
+      <h1>CodePremium Admin</h1>
+      <p>Administración visual de asuntos por plataforma.</p>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/">Buscador</a>
+    <button class="btn" id="logoutBtn" type="button">Salir</button>
+    <button class="btn primary" onclick="exportRules()">Exportar</button>
+  </div>
+</header>
+
+<section class="hero">
+  <h2>Reglas simples, panel elegante</h2>
+  <p>Selecciona una plataforma y agrega asuntos. El panel guarda los cambios localmente para esta prueba.</p>
+</section>
+
+<section class="service-board" id="serviceBoard"></section>
+
+<section class="card workspace">
+  <div class="workspace-head">
+    <div>
+      <h3 id="title">Reglas</h3>
+      <p id="subtitle">Agrega los asuntos que el motor reconocerá para esta plataforma.</p>
+    </div>
+    <div class="counter">
+      <strong id="count">0</strong>
+      <span>asuntos</span>
+    </div>
+  </div>
+
+  <div class="workspace-body">
+    <div>
+      <label>Nuevo asunto</label>
+      <div class="add-row">
+        <input id="subjectInput" placeholder="Ej: Tu código de acceso único">
+        <button class="btn primary" onclick="addSubject()">Agregar</button>
+      </div>
+
+      <label>Asuntos guardados</label>
+      <div class="subject-list" id="subjectList"></div>
+    </div>
+
+    <aside class="side">
+      <div class="info">
+        <h4>Modo admin</h4>
+        <p>Selecciona una tarjeta, agrega asuntos y revisa la lista limpia. En la siguiente fase se conecta con Render para afectar el buscador real.</p>
+      </div>
+      <div class="info">
+        <h4 id="statusTitle">Servicio activo</h4>
+        <p id="statusText">Listo para buscar correos autorizados en la bandeja de entrada.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+</main>
+
+<div class="toast" id="toast">Listo</div>
+
+<script>
+const ADMIN_DEMO_KEY = "admin123";
+const STORAGE_KEY = "codepremium-admin-rules-local";
+const SESSION_KEY = "codepremium-admin-unlocked";
+
+const defaultPlatforms = [
+  {id:"netflix", name:"Netflix", short:"NF", icon:"▦", color:"#e50914", subjects:[
+    "Tu código de acceso temporal de Netflix",
+    "Importante: Cómo actualizar tu Hogar con Netflix",
+    "Netflix: Tu código de inicio de sesión",
+    "Tu verificación de inicio de sesión en Netflix"
+  ]},
+  {id:"disneyplus", name:"Disney+", short:"D+", icon:"✦", color:"#1677ff", subjects:[
+    "Tu código de acceso único para Disney+",
+    "Disney+ código de acceso"
+  ]},
+  {id:"primevideo", name:"Prime Video", short:"PV", icon:"▶", color:"#00a8e1", subjects:[
+    "Código de verificación Amazon Prime",
+    "Prime Video: Código de acceso temporal"
+  ]},
+  {id:"hbomax", name:"HBO Max", short:"MAX", icon:"●", color:"#9b5cff", subjects:[
+    "Código de verificación HBO Max",
+    "HBO Max código de acceso"
+  ]},
+  {id:"spotify", name:"Spotify", short:"SP", icon:"♪", color:"#1db954", subjects:[
+    "Código de verificación Spotify",
+    "Spotify: Código de acceso temporal"
+  ]}
+];
+
+let platforms = loadPlatforms();
+let selected = 0;
+
+const loginWall = document.getElementById("loginWall");
+const loginForm = document.getElementById("loginForm");
+const adminPass = document.getElementById("adminPass");
+const serviceBoard = document.getElementById("serviceBoard");
+const title = document.getElementById("title");
+const subtitle = document.getElementById("subtitle");
+const count = document.getElementById("count");
+const statusTitle = document.getElementById("statusTitle");
+const statusText = document.getElementById("statusText");
+const subjectList = document.getElementById("subjectList");
+const subjectInput = document.getElementById("subjectInput");
+
+function loadPlatforms(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (Array.isArray(saved)) return saved;
+  } catch (error) {}
+  return JSON.parse(JSON.stringify(defaultPlatforms));
+}
+
+function savePlatforms(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(platforms));
+}
+
+function showToast(text){
+  const toast = document.getElementById("toast");
+  toast.textContent = text;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 1400);
+}
+
+function unlockAdmin(){
+  sessionStorage.setItem(SESSION_KEY, "yes");
+  loginWall.classList.add("hidden");
+}
+
+if (sessionStorage.getItem(SESSION_KEY) === "yes") {
+  loginWall.classList.add("hidden");
+}
+
+loginForm.addEventListener("submit", event => {
+  event.preventDefault();
+  if (adminPass.value === ADMIN_DEMO_KEY) {
+    adminPass.value = "";
+    unlockAdmin();
+    showToast("Acceso concedido");
+  } else {
+    showToast("Clave incorrecta");
+  }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  sessionStorage.removeItem(SESSION_KEY);
+  loginWall.classList.remove("hidden");
+});
+
+function render(){
+  const current = platforms[selected];
+  document.documentElement.style.setProperty("--accent", current.color);
+
+  serviceBoard.innerHTML = platforms.map((p,i)=>`
+    <button class="service-card ${i===selected ? "active" : ""}" style="--c:${p.color}" onclick="selectPlatform(${i})">
+      <span class="service-top">
+        <span class="service-badge">${p.short}</span>
+        <small>${p.subjects.length} asuntos</small>
+      </span>
+      <b>${p.icon} ${p.name}</b>
+    </button>
+  `).join("");
+
+  title.textContent = "Reglas de " + current.name;
+  subtitle.textContent = "Administra asuntos reconocidos para " + current.name + ".";
+  count.textContent = current.subjects.length;
+  statusTitle.textContent = current.name + " activo";
+  statusText.textContent = current.subjects.length + " asuntos configurados para búsqueda interna.";
+
+  subjectList.innerHTML = current.subjects.length
+    ? current.subjects.map((s,i)=>`
+      <div class="subject">
+        <span>${escapeHtml(s)}</span>
+        <button class="remove" onclick="removeSubject(${i})">×</button>
+      </div>
+    `).join("")
+    : `<div class="empty">No hay asuntos guardados.</div>`;
+}
+
+function selectPlatform(i){
+  selected = i;
+  render();
+}
+
+function addSubject(){
+  const value = subjectInput.value.trim();
+  if(!value){
+    showToast("Escribe un asunto");
+    return;
+  }
+
+  platforms[selected].subjects.push(value);
+  savePlatforms();
+  subjectInput.value = "";
+  render();
+  showToast("Asunto agregado");
+}
+
+function removeSubject(i){
+  platforms[selected].subjects.splice(i, 1);
+  savePlatforms();
+  render();
+  showToast("Asunto eliminado");
+}
+
+function exportRules(){
+  const blob = new Blob([JSON.stringify(platforms, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "codepremium-reglas-admin.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+  showToast("Reglas exportadas");
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+subjectInput.addEventListener("keydown", e => {
+  if(e.key === "Enter") addSubject();
+});
+
+render();
+</script>
+</body>
+</html>
