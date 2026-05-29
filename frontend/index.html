@@ -1000,38 +1000,383 @@
     }
 
     function openEmail(correo) {
+      const subject = correo.subject || "Correo";
+      const date = formatDate(correo.date);
+      const from = cleanFrom(correo.from || "");
+      const to = correoInput.value.trim();
+      const plataforma = normalizePlatform(null, platformInput.value);
+      const code = extractCode(correo);
+      const originalBody = correo.body || escapeHtml(correo.snippet || "Sin contenido disponible.");
+
       const fullHtml = `
         <!DOCTYPE html>
         <html lang="es">
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width,initial-scale=1">
-          <title>Vista del correo</title>
+          <title>${escapeHtml(subject)}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
           <style>
+            :root {
+              --bg-url: url('https://assets.nflxext.com/ffe/siteui/vlv3/5efeb1fd-55d2-4799-8d38-e59e15858b9c/web/US-en-20260427-TRIFECTA-perspective_41f184d6-95ac-455a-a049-9ac59f105aaa_large.jpg');
+              --red: #e50914;
+              --red2: #ff3040;
+              --text: #f8fafc;
+              --muted: #9ca3af;
+              --line: rgba(255,255,255,.11);
+            }
+
+            * {
+              box-sizing: border-box;
+            }
+
             body {
               margin: 0;
-              background: #080b12;
-              color: #f8fafc;
-              font-family: Inter, system-ui, sans-serif;
-              padding: 24px;
+              min-height: 100vh;
+              font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              color: var(--text);
+              background:
+                radial-gradient(circle at 12% 8%, rgba(229,9,20,.22), transparent 28%),
+                radial-gradient(circle at 82% 14%, rgba(0,168,255,.14), transparent 32%),
+                linear-gradient(rgba(0,0,0,.78), rgba(0,0,0,.90)),
+                var(--bg-url);
+              background-size: cover;
+              background-position: center;
+              background-attachment: fixed;
             }
-            .mail {
-              max-width: 760px;
-              margin: auto;
-              background: rgba(17,24,39,.94);
+
+            button {
+              font: inherit;
+              cursor: pointer;
+            }
+
+            .page {
+              width: min(980px, calc(100% - 28px));
+              margin: 0 auto;
+              padding: 24px 0 44px;
+            }
+
+            .viewer-top {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 14px;
+              margin-bottom: 18px;
+            }
+
+            .brand {
+              display: flex;
+              align-items: center;
+              gap: 11px;
+              min-width: 0;
+            }
+
+            .brand-mark {
+              width: 42px;
+              height: 42px;
+              border-radius: 14px;
+              display: grid;
+              place-items: center;
+              background: linear-gradient(135deg, var(--red), var(--red2));
+              box-shadow: 0 16px 34px rgba(229,9,20,.28);
+              flex: 0 0 auto;
+            }
+
+            .brand-title {
+              min-width: 0;
+            }
+
+            .brand-title strong {
+              display: block;
+              font-size: 15px;
+              letter-spacing: .01em;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .brand-title span {
+              display: block;
+              margin-top: 3px;
+              font-size: 12px;
+              color: #b7c1d3;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .top-actions {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex: 0 0 auto;
+            }
+
+            .icon-btn {
+              border: 1px solid var(--line);
+              color: #e5e7eb;
+              background: rgba(255,255,255,.06);
+              border-radius: 13px;
+              padding: 10px 12px;
+              font-size: 13px;
+              font-weight: 800;
+              backdrop-filter: blur(10px);
+              transition: .18s ease;
+            }
+
+            .icon-btn:hover {
+              background: rgba(255,255,255,.10);
+              transform: translateY(-1px);
+            }
+
+            .icon-btn.primary {
+              border: 0;
+              background: linear-gradient(135deg, var(--red), var(--red2));
+              box-shadow: 0 14px 30px rgba(229,9,20,.25);
+              color: #fff;
+            }
+
+            .mail-card {
+              border-radius: 32px;
+              background: rgba(6,9,16,.70);
               border: 1px solid rgba(255,255,255,.12);
-              border-radius: 28px;
-              padding: 30px;
-              box-shadow: 0 30px 80px rgba(0,0,0,.45);
+              box-shadow: 0 38px 110px rgba(0,0,0,.48);
+              backdrop-filter: blur(18px);
+              overflow: hidden;
+            }
+
+            .mail-summary {
+              display: grid;
+              grid-template-columns: 1fr auto;
+              gap: 14px;
+              align-items: center;
+              padding: 18px 22px;
+              border-bottom: 1px solid rgba(255,255,255,.09);
+              background:
+                linear-gradient(90deg, rgba(229,9,20,.14), rgba(255,255,255,.035));
+            }
+
+            .mail-summary h1 {
+              margin: 0;
+              font-size: clamp(18px, 3vw, 26px);
+              line-height: 1.2;
+              letter-spacing: -.02em;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .mail-summary p {
+              margin: 7px 0 0;
+              color: var(--muted);
+              font-size: 13px;
+              line-height: 1.45;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .service-pill {
+              border: 1px solid rgba(229,9,20,.35);
+              background: rgba(229,9,20,.15);
+              border-radius: 14px;
+              padding: 10px 12px;
+              color: white;
+              font-size: 13px;
+              font-weight: 900;
+              white-space: nowrap;
+            }
+
+            .email-stage {
+              padding: 28px;
+              background:
+                radial-gradient(circle at 50% 0%, rgba(255,255,255,.06), transparent 25%),
+                rgba(255,255,255,.025);
+            }
+
+            .email-frame {
+              max-width: 760px;
+              margin: 0 auto;
+              background: #dcdcdc;
+              border-radius: 18px;
+              padding: 24px;
+              box-shadow: 0 28px 80px rgba(0,0,0,.34);
               overflow: auto;
             }
-            img { max-width: 100%; height: auto; }
-            a { color: #60a5fa; }
-            p { line-height: 1.7; }
+
+            .email-paper {
+              background: #fff;
+              color: #111827;
+              min-height: 280px;
+              box-shadow: 0 18px 50px rgba(0,0,0,.16);
+              overflow: auto;
+            }
+
+            .email-paper img {
+              max-width: 100%;
+              height: auto;
+            }
+
+            .email-paper table {
+              max-width: 100%;
+            }
+
+            .email-original {
+              background: #fff;
+              color: #111827;
+              overflow: auto;
+            }
+
+            .toast {
+              position: fixed;
+              left: 50%;
+              bottom: 22px;
+              transform: translateX(-50%) translateY(18px);
+              opacity: 0;
+              pointer-events: none;
+              color: white;
+              background: rgba(11,16,32,.96);
+              border: 1px solid rgba(255,255,255,.12);
+              border-radius: 14px;
+              padding: 12px 16px;
+              box-shadow: 0 20px 60px rgba(0,0,0,.38);
+              transition: .2s ease;
+              font-weight: 800;
+            }
+
+            .toast.show {
+              opacity: 1;
+              transform: translateX(-50%) translateY(0);
+            }
+
+            @media (max-width: 720px) {
+              body {
+                background-attachment: scroll;
+              }
+
+              .page {
+                width: min(100% - 16px, 980px);
+                padding: 14px 0 30px;
+              }
+
+              .viewer-top {
+                align-items: flex-start;
+              }
+
+              .brand-title span {
+                display: none;
+              }
+
+              .top-actions {
+                gap: 6px;
+              }
+
+              .icon-btn {
+                padding: 9px 10px;
+                font-size: 12px;
+              }
+
+              .mail-card {
+                border-radius: 24px;
+              }
+
+              .mail-summary {
+                grid-template-columns: 1fr;
+                padding: 16px;
+              }
+
+              .mail-summary h1 {
+                white-space: normal;
+                font-size: 20px;
+              }
+
+              .mail-summary p {
+                white-space: normal;
+              }
+
+              .service-pill {
+                width: max-content;
+              }
+
+              .email-stage {
+                padding: 10px;
+              }
+
+              .email-frame {
+                padding: 8px;
+                border-radius: 14px;
+              }
+
+              .email-paper {
+                min-height: auto;
+              }
+            }
           </style>
         </head>
         <body>
-          <div class="mail">${correo.body || escapeHtml(correo.snippet || "Sin contenido disponible.")}</div>
+          <main class="page">
+            <header class="viewer-top">
+              <div class="brand">
+                <div class="brand-mark">✉</div>
+                <div class="brand-title">
+                  <strong>CodePremium Mail Viewer</strong>
+                  <span>Vista original del correo</span>
+                </div>
+              </div>
+
+              <div class="top-actions">
+                <button class="icon-btn primary" id="copyCodeBtn" type="button">Copiar código</button>
+                <button class="icon-btn" onclick="window.close()" type="button">Cerrar</button>
+              </div>
+            </header>
+
+            <section class="mail-card">
+              <div class="mail-summary">
+                <div>
+                  <h1>${escapeHtml(subject)}</h1>
+                  <p>Para: ${escapeHtml(to || "correo consultado")} · Recibido: ${escapeHtml(date)}${from ? " · De: " + escapeHtml(from) : ""}</p>
+                </div>
+                <div class="service-pill">${escapeHtml(plataforma.nombre)}</div>
+              </div>
+
+              <div class="email-stage">
+                <div class="email-frame">
+                  <article class="email-paper">
+                    <div class="email-original">
+                      ${originalBody}
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </section>
+          </main>
+
+          <div class="toast" id="toast">Código copiado</div>
+
+          <script>
+            const detectedCode = ${JSON.stringify(code)};
+            const copyBtn = document.getElementById("copyCodeBtn");
+            const toast = document.getElementById("toast");
+
+            if (!detectedCode) {
+              copyBtn.textContent = "Sin código";
+              copyBtn.disabled = true;
+              copyBtn.style.opacity = ".55";
+              copyBtn.style.cursor = "not-allowed";
+            }
+
+            copyBtn.addEventListener("click", async () => {
+              if (!detectedCode) return;
+              try {
+                await navigator.clipboard.writeText(detectedCode);
+                toast.classList.add("show");
+                setTimeout(() => toast.classList.remove("show"), 1600);
+              } catch (error) {
+                copyBtn.textContent = "Código: " + detectedCode;
+              }
+            });
+          <\/script>
         </body>
         </html>
       `;
