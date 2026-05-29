@@ -42,6 +42,7 @@
 
     button, input { font: inherit; }
     button { cursor: pointer; }
+
     .page {
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
@@ -89,25 +90,31 @@
 
     .mode-panel {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 12px;
-      padding: 7px;
-      border-radius: 999px;
+      gap: 7px;
+      padding: 9px 12px 10px;
+      border-radius: 24px;
       background: rgba(255,255,255,.06);
       border: 1px solid var(--line);
       backdrop-filter: blur(12px);
+      min-width: 260px;
     }
 
     .mode-label {
       color: #dbe4f2;
-      font-size: 13px;
-      padding-left: 10px;
-      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: .02em;
+      text-transform: uppercase;
     }
 
     .mode-buttons {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
+      width: 100%;
     }
 
     .mode-btn {
@@ -116,7 +123,7 @@
       background: transparent;
       border-radius: 999px;
       padding: 9px 13px;
-      font-weight: 800;
+      font-weight: 900;
       font-size: 13px;
       transition: .18s ease;
     }
@@ -126,17 +133,6 @@
       background: linear-gradient(135deg, var(--red), var(--red2));
       box-shadow: 0 12px 28px rgba(229,9,20,.28);
     }
-
-    .mode-title {
-      text-align: center;
-      margin: 0 0 22px;
-      color: #dbe4f2;
-      font-size: 14px;
-      letter-spacing: .02em;
-    }
-
-    .mode-title strong { color: white; }
-    .mode-title span { color: #ff5c68; }
 
     /* Landing / Premium */
     .hero {
@@ -181,14 +177,15 @@
       line-height: .95;
       letter-spacing: -.05em;
       margin: 0;
-      max-width: 790px;
+      max-width: 850px;
     }
 
     .hero p {
-      max-width: 720px;
+      max-width: 760px;
       color: #b8c1d1;
       line-height: 1.7;
       margin: 18px 0 0;
+      font-size: 16px;
     }
 
     .cards {
@@ -199,7 +196,7 @@
     }
 
     .info-card {
-      min-height: 248px;
+      min-height: 280px;
       padding: 26px;
       border-radius: 28px;
       background: rgba(15,18,27,.72);
@@ -249,6 +246,39 @@
       color: #02130c;
       font-weight: 900;
       font-size: 12px;
+    }
+
+    .steps {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 0;
+      display: grid;
+      gap: 12px;
+      counter-reset: step;
+    }
+
+    .steps li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: #d7deeb;
+      line-height: 1.45;
+    }
+
+    .steps li::before {
+      counter-increment: step;
+      content: counter(step);
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.14);
+      color: white;
+      font-size: 12px;
+      font-weight: 900;
     }
 
     .search-band {
@@ -390,14 +420,14 @@
     }
 
     body[data-mode="minimal"] .search-band h2::after {
-      content: "Versión limpia para buscar más rápido, especialmente en móvil.";
+      content: "Selecciona el servicio, ingresa el correo asociado a la cuenta y revisa los últimos mensajes disponibles.";
       display: block;
       font-size: 15px;
       font-weight: 500;
       letter-spacing: normal;
       line-height: 1.7;
       color: var(--muted);
-      max-width: 620px;
+      max-width: 660px;
       margin: 16px auto 26px;
     }
 
@@ -621,10 +651,9 @@
       }
       .mode-panel {
         border-radius: 22px;
-        flex-direction: column;
         align-items: stretch;
       }
-      .mode-label { padding-left: 0; text-align: center; }
+      .mode-label { text-align: center; }
       .brand-text span { display: none; }
     }
   </style>
@@ -641,8 +670,8 @@
         </div>
       </div>
 
-      <div class="mode-panel" aria-label="Cambiar vista">
-        <span class="mode-label">Modo Landing&nbsp; | &nbsp;Modo Minimal</span>
+      <div class="mode-panel" aria-label="Seleccionar vista">
+        <span class="mode-label">Seleccionar vista</span>
         <div class="mode-buttons">
           <button class="mode-btn active" type="button" data-set-mode="landing">Premium</button>
           <button class="mode-btn" type="button" data-set-mode="minimal">Rápida</button>
@@ -650,51 +679,49 @@
       </div>
     </header>
 
-    <p class="mode-title">Cambiar vista: <strong>Premium</strong> <span>|</span> <strong>Rápida</strong></p>
-
     <section class="hero">
-      <span class="hero-kicker">✨ Panel profesional de búsqueda</span>
-      <h1>Consulta códigos con una experiencia premium.</h1>
-      <p>Diseño tipo landing, ideal para verse más formal en escritorio. En móvil puedes cambiar a la vista rápida para una experiencia más compacta.</p>
+      <span class="hero-kicker">✨ Panel seguro de consulta</span>
+      <h1>Consulta tu código de acceso en segundos</h1>
+      <p>Herramienta centralizada para localizar códigos autorizados, enlaces de confirmación y mensajes recientes usando únicamente el correo asociado al servicio.</p>
     </section>
 
     <section class="cards" aria-label="Beneficios">
       <article class="info-card" style="--accent:#E50914">
         <div class="iconbox">▦</div>
         <h2>Netflix</h2>
-        <p>Accede a códigos de verificación y enlaces temporales desde un panel limpio.</p>
+        <p>Encuentra mensajes recientes relacionados con verificación de cuenta, acceso temporal y confirmaciones importantes.</p>
         <ul class="ticks">
-          <li>Códigos temporales</li>
-          <li>Enlaces de verificación</li>
-          <li>Últimos correos</li>
+          <li>Códigos de verificación</li>
+          <li>Accesos temporales</li>
+          <li>Correos filtrados por servicio</li>
         </ul>
       </article>
 
       <article class="info-card" style="--accent:#1677ff">
         <div class="iconbox">✦</div>
         <h2>Disney+</h2>
-        <p>Obtén códigos de acceso único con una interfaz visualmente más ordenada.</p>
+        <p>Consulta códigos de ingreso y mensajes de autenticación vinculados al correo registrado en la plataforma.</p>
         <ul class="ticks">
-          <li>Códigos de ingreso</li>
-          <li>Verificación rápida</li>
-          <li>Acceso inmediato</li>
+          <li>Búsqueda por correo</li>
+          <li>Resultados recientes</li>
+          <li>Vista rápida del mensaje</li>
         </ul>
       </article>
 
       <article class="info-card" style="--accent:#00A8E1">
         <div class="iconbox">＋</div>
-        <h2>Y muchas más</h2>
-        <p>Busca por servicio, correo y revisa resultados sin salir del mismo panel.</p>
-        <ul class="ticks">
-          <li>Múltiples servicios</li>
-          <li>Panel centralizado</li>
-          <li>Adaptado a móvil</li>
-        </ul>
+        <h2>Cómo funciona</h2>
+        <p>Realiza la consulta en pocos pasos desde un panel simple, seguro y adaptado a cualquier dispositivo.</p>
+        <ol class="steps">
+          <li>Escribe el correo con el que inicias sesión en el servicio.</li>
+          <li>Selecciona el ícono correspondiente a la plataforma.</li>
+          <li>Presiona “Buscar código” y luego “Ver” para abrir el mensaje.</li>
+        </ol>
       </article>
     </section>
 
     <section class="search-band">
-      <h2>Consulta tu código de acceso</h2>
+      <h2>Consulta tu código de acceso en segundos</h2>
 
       <form id="searchForm">
         <input type="hidden" id="plataforma" value="disneyplus">
@@ -724,7 +751,7 @@
         <div class="search-row">
           <div class="input-wrap">
             <span>✉</span>
-            <input id="correo" type="email" placeholder="Ingresa el correo electrónico registrado" required>
+            <input id="correo" type="email" placeholder="Ingresa el correo asociado al servicio" required>
           </div>
           <button class="primary-btn" type="submit">🔎 Buscar código</button>
         </div>
@@ -738,7 +765,7 @@
       </div>
     </section>
 
-    <p class="footer-note">Los correos se abrirán en una nueva pestaña. Backend activo en Render.</p>
+    <p class="footer-note">Los resultados se muestran de forma privada y los correos se abren en una nueva pestaña.</p>
   </main>
 
   <script>
@@ -826,7 +853,7 @@
         <div class="loading-card">
           <div class="spinner"></div>
           <strong>Buscando códigos...</strong>
-          <span>Consultando los últimos correos disponibles.</span>
+          <span>Consultando los últimos mensajes disponibles.</span>
         </div>
       `;
     }
@@ -849,7 +876,7 @@
         resultsArea.innerHTML = `
           <div class="empty-card">
             <strong>Sin resultados</strong>
-            <p>No se encontraron correos para <b>${escapeHtml(correoBuscado)}</b> en ${escapeHtml(plataforma.nombre)}.</p>
+            <p>No se encontraron mensajes recientes para <b>${escapeHtml(correoBuscado)}</b> en ${escapeHtml(plataforma.nombre)}.</p>
           </div>
         `;
         return;
