@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const { google } = require('googleapis');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -51,10 +53,10 @@ function validateGoogleConfig() {
   return missing;
 }
 
-const PLATAFORMAS = {
+const DEFAULT_PLATAFORMAS = {
   netflix: {
     nombre: 'Netflix',
-    icono: '📺',
+    icono: '▦',
     color: '#E50914',
     asuntos: [
       'Tu código de acceso temporal de Netflix',
@@ -65,35 +67,171 @@ const PLATAFORMAS = {
   },
   disneyplus: {
     nombre: 'Disney+',
-    icono: '✨',
-    color: '#1E3A8A',
+    icono: '✦',
+    color: '#1677ff',
     asuntos: ['Tu código de acceso único para Disney+', 'Disney+ código de acceso']
   },
   primevideo: {
     nombre: 'Prime Video',
-    icono: '📦',
+    icono: '▶',
     color: '#00A8E1',
     asuntos: ['Código de verificación Amazon Prime', 'Prime Video: Código de acceso temporal']
   },
   hbomax: {
     nombre: 'HBO Max',
-    icono: '🎬',
-    color: '#6A1B9A',
+    icono: '●',
+    color: '#9b5cff',
     asuntos: ['Código de verificación HBO Max', 'HBO Max código de acceso']
   },
   spotify: {
     nombre: 'Spotify',
-    icono: '🎵',
+    icono: '♪',
     color: '#1DB954',
     asuntos: ['Código de verificación Spotify', 'Spotify: Código de acceso temporal']
   }
 };
 
+const RULES_FILE = process.env.ADMIN_RULES_FILE || path.join(__dirname, 'data', 'admin-rules.json');
+let plataformasCache = null;
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function keyFromName(name = '') {
+  return String(name)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '') || `servicio${Date.now()}`;
+}
+
+function shortFromName(name = '') {
+  const clean = String(name).trim();
+  if (!clean) return 'SV';
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  return words.map(w => w[0]).join('').slice(0, 3).toUpperCase();
+}
+
+function uniqueSubjects(subjects) {
+  const seen = new Set();
+  const result = [];
+  for (const subject of Array.isArray(subjects) ? subjects : []) {
+    const clean = String(subject || '').trim();
+    if (!clean || seen.has(clean.toLowerCase())) continue;
+    seen.add(clean.toLowerCase());
+    result.push(clean);
+  }
+  return result;
+}
+
+function normalizePlatformObject(input) {
+  const normalized = {};
+  const source = input && typeof input === 'object' ? input : {};
+
+  for (const [key, value] of Object.entries(source)) {
+    if (!value || typeof value !== 'object') continue;
+    const cleanKey = keyFromName(key);
+    normalized[cleanKey] = {
+      nombre: String(value.nombre || value.name || key).trim(),
+      icono: String(value.icono || value.icon || '✉').trim(),
+      color: String(value.color || '#e50914').trim(),
+      asuntos: uniqueSubjects(value.asuntos || value.subjects)
+    };
+  }
+
+  return normalized;
+}
+
+function normalizeAdminArray(platforms) {
+  const normalized = {};
+  for (const item of Array.isArray(platforms) ? platforms : []) {
+    if (!item || typeof item !== 'object') continue;
+    const id = keyFromName(item.id || item.name || item.nombre);
+    const name = String(item.name || item.nombre || id).trim();
+    normalized[id] = {
+      nombre: name,
+      icono: String(item.icon || item.icono || '✉').trim(),
+      color: String(item.color || '#e50914').trim(),
+      asuntos: uniqueSubjects(item.subjects || item.asuntos)
+    };
+  }
+  return normalized;
+}
+
+function mergeWithDefaults(custom = {}) {
+  const base = cloneJson(DEFAULT_PLATAFORMAS);
+  const merged = { ...base };
+
+  for (const [key, value] of Object.entries(custom)) {
+    merged[key] = {
+      nombre: value.nombre || base[key]?.nombre || key,
+      icono: value.icono || base[key]?.icono || '✉',
+      color: value.color || base[key]?.color || '#e50914',
+      asuntos: uniqueSubjects(value.asuntos || base[key]?.asuntos || [])
+    };
+  }
+
+  return merged;
+}
+
+function loadPlataformas({ force = false } = {}) {
+  if (plataformasCache && !force) return plataformasCache;
+
+  let loaded = null;
+
+  if (fs.existsSync(RULES_FILE)) {
+    try {
+      loaded = normalizePlatformObject(JSON.parse(fs.readFileSync(RULES_FILE, 'utf-8')));
+    } catch (error) {
+      console.error('No se pudo leer ADMIN_RULES_FILE:', error.message);
+    }
+  }
+
+  if (!loaded && process.env.ADMIN_RULES_JSON) {
+    try {
+      loaded = normalizePlatformObject(JSON.parse(process.env.ADMIN_RULES_JSON));
+    } catch (error) {
+      console.error('ADMIN_RULES_JSON no es válido:', error.message);
+    }
+  }
+
+  plataformasCache = mergeWithDefaults(loaded || {});
+  return plataformasCache;
+}
+
+function savePlataformasFromAdmin(platforms) {
+  const normalized = mergeWithDefaults(normalizeAdminArray(platforms));
+  fs.mkdirSync(path.dirname(RULES_FILE), { recursive: true });
+  fs.writeFileSync(RULES_FILE, JSON.stringify(normalized, null, 2), 'utf-8');
+  plataformasCache = normalized;
+  return normalized;
+}
+
+function plataformasToAdminArray(plataformas = loadPlataformas()) {
+  return Object.entries(plataformas).map(([id, platform]) => ({
+    id,
+    name: platform.nombre,
+    short: shortFromName(platform.nombre),
+    icon: platform.icono,
+    color: platform.color,
+    subjects: platform.asuntos || []
+  }));
+}
+
+function getRulesSource() {
+  if (fs.existsSync(RULES_FILE)) return 'archivo';
+  if (process.env.ADMIN_RULES_JSON) return 'ADMIN_RULES_JSON';
+  return 'default';
+}
+
 function buildSubjectQuery(plataformaKey) {
-  const asuntos = PLATAFORMAS[plataformaKey]?.asuntos || [];
+  const asuntos = loadPlataformas()[plataformaKey]?.asuntos || [];
   if (asuntos.length === 0) return '';
   return asuntos.map(asunto => `subject:"${asunto.replace(/"/g, '\\"')}"`).join(' OR ');
 }
+
 
 function decodeBase64(data) {
   return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
@@ -215,17 +353,19 @@ app.get('/health', (_req, res) => {
     redirectUri: REDIRECT_URI,
     hasGoogleClientId: Boolean(CLIENT_ID),
     hasGoogleClientSecret: Boolean(CLIENT_SECRET),
-    hasGmailTokens: Boolean(process.env.GMAIL_TOKENS)
+    hasGmailTokens: Boolean(process.env.GMAIL_TOKENS),
+    hasAdminPassword: Boolean(process.env.ADMIN_PASSWORD),
+    rulesSource: getRulesSource()
   });
 });
 
 app.get('/', (_req, res) => {
   res.render('index', {
-    plataformas: Object.keys(PLATAFORMAS).map(key => ({
+    plataformas: Object.keys(loadPlataformas()).map(key => ({
       key,
-      nombre: PLATAFORMAS[key].nombre,
-      icono: PLATAFORMAS[key].icono,
-      color: PLATAFORMAS[key].color
+      nombre: loadPlataformas()[key].nombre,
+      icono: loadPlataformas()[key].icono,
+      color: loadPlataformas()[key].color
     })),
     error: null
   });
@@ -233,10 +373,12 @@ app.get('/', (_req, res) => {
 
 app.post('/buscar-json', async (req, res) => {
   const { correo, plataforma } = req.body;
+  const plataformas = loadPlataformas();
+
   if (!correo || !correo.includes('@')) {
     return res.json({ error: 'Correo inválido' });
   }
-  if (!plataforma || !PLATAFORMAS[plataforma]) {
+  if (!plataforma || !plataformas[plataforma]) {
     return res.json({ error: 'Plataforma inválida' });
   }
 
@@ -244,13 +386,69 @@ app.post('/buscar-json', async (req, res) => {
     const correos = await searchEmailsByPlataforma(plataforma, correo);
     return res.json({
       success: true,
-      plataforma: PLATAFORMAS[plataforma],
+      plataforma: plataformas[plataforma],
       correos,
       correoBuscado: correo
     });
   } catch (err) {
     console.error('Error /buscar-json:', err);
     return res.json({ error: 'Error al buscar correos: ' + err.message });
+  }
+});
+
+
+function requireAdmin(req, res, next) {
+  if (req.session && req.session.isAdmin) return next();
+  return res.status(401).json({ error: 'No autorizado' });
+}
+
+app.post('/admin-api/login', (req, res) => {
+  const configuredPassword = process.env.ADMIN_PASSWORD;
+  if (!configuredPassword) {
+    return res.status(500).json({ error: 'Falta configurar ADMIN_PASSWORD en Render.' });
+  }
+
+  const { password } = req.body || {};
+  if (String(password || '') !== String(configuredPassword)) {
+    return res.status(401).json({ error: 'Clave incorrecta' });
+  }
+
+  req.session.isAdmin = true;
+  return res.json({ ok: true });
+});
+
+app.post('/admin-api/logout', (req, res) => {
+  if (!req.session) return res.json({ ok: true });
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    return res.json({ ok: true });
+  });
+});
+
+app.get('/admin-api/me', (req, res) => {
+  return res.json({ ok: true, authenticated: Boolean(req.session && req.session.isAdmin) });
+});
+
+app.get('/admin-api/rules', requireAdmin, (_req, res) => {
+  return res.json({
+    ok: true,
+    source: getRulesSource(),
+    platforms: plataformasToAdminArray(loadPlataformas({ force: true }))
+  });
+});
+
+app.put('/admin-api/rules', requireAdmin, (req, res) => {
+  try {
+    const { platforms } = req.body || {};
+    if (!Array.isArray(platforms)) {
+      return res.status(400).json({ error: 'Formato inválido. Se esperaba platforms como arreglo.' });
+    }
+
+    const saved = savePlataformasFromAdmin(platforms);
+    return res.json({ ok: true, platforms: plataformasToAdminArray(saved) });
+  } catch (error) {
+    console.error('Error guardando reglas admin:', error);
+    return res.status(500).json({ error: 'No se pudieron guardar las reglas: ' + error.message });
   }
 });
 
@@ -325,4 +523,6 @@ app.listen(PORT, () => {
   console.log(`Google Client ID: ${CLIENT_ID ? 'configurado' : 'FALTA'}`);
   console.log(`Google Client Secret: ${CLIENT_SECRET ? 'configurado' : 'FALTA'}`);
   console.log(`GMAIL_TOKENS: ${process.env.GMAIL_TOKENS ? 'configurado' : 'FALTA'}`);
+  console.log(`ADMIN_PASSWORD: ${process.env.ADMIN_PASSWORD ? 'configurado' : 'FALTA'}`);
+  console.log(`Reglas admin: ${getRulesSource()}`);
 });

@@ -234,8 +234,7 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
       <button class="btn primary" type="submit">Entrar</button>
     </form>
     <div class="login-note">
-      Demo local: <b>admin123</b><br>
-      Para producción, la clave debe validarse desde Render.
+      La clave se valida desde Render.<br>Usa la variable <b>ADMIN_PASSWORD</b>.
     </div>
     <br>
     <a class="btn" href="/">Volver al buscador</a>
@@ -260,7 +259,7 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
 
 <section class="hero">
   <h2>Reglas simples, panel elegante</h2>
-  <p>Selecciona una plataforma y agrega asuntos. El panel guarda los cambios localmente para esta prueba.</p>
+  <p>Selecciona una plataforma y agrega asuntos. El panel guarda los cambios en Render y actualiza el buscador real.</p>
 </section>
 
 <section class="service-board" id="serviceBoard"></section>
@@ -292,7 +291,7 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
     <aside class="side">
       <div class="info">
         <h4>Modo admin</h4>
-        <p>Selecciona una tarjeta, agrega asuntos y revisa la lista limpia. En la siguiente fase se conecta con Render para afectar el buscador real.</p>
+        <p>Selecciona una tarjeta, agrega asuntos y revisa la lista limpia. Los cambios guardados afectan el buscador real de inmediato.</p>
       </div>
       <div class="info">
         <h4 id="statusTitle">Servicio activo</h4>
@@ -306,36 +305,7 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
 <div class="toast" id="toast">Listo</div>
 
 <script>
-const ADMIN_DEMO_KEY = "admin123";
-const STORAGE_KEY = "codepremium-admin-rules-local";
-const SESSION_KEY = "codepremium-admin-unlocked";
-
-const defaultPlatforms = [
-  {id:"netflix", name:"Netflix", short:"NF", icon:"▦", color:"#e50914", subjects:[
-    "Tu código de acceso temporal de Netflix",
-    "Importante: Cómo actualizar tu Hogar con Netflix",
-    "Netflix: Tu código de inicio de sesión",
-    "Tu verificación de inicio de sesión en Netflix"
-  ]},
-  {id:"disneyplus", name:"Disney+", short:"D+", icon:"✦", color:"#1677ff", subjects:[
-    "Tu código de acceso único para Disney+",
-    "Disney+ código de acceso"
-  ]},
-  {id:"primevideo", name:"Prime Video", short:"PV", icon:"▶", color:"#00a8e1", subjects:[
-    "Código de verificación Amazon Prime",
-    "Prime Video: Código de acceso temporal"
-  ]},
-  {id:"hbomax", name:"HBO Max", short:"MAX", icon:"●", color:"#9b5cff", subjects:[
-    "Código de verificación HBO Max",
-    "HBO Max código de acceso"
-  ]},
-  {id:"spotify", name:"Spotify", short:"SP", icon:"♪", color:"#1db954", subjects:[
-    "Código de verificación Spotify",
-    "Spotify: Código de acceso temporal"
-  ]}
-];
-
-let platforms = loadPlatforms();
+let platforms = [];
 let selected = 0;
 
 const loginWall = document.getElementById("loginWall");
@@ -350,16 +320,21 @@ const statusText = document.getElementById("statusText");
 const subjectList = document.getElementById("subjectList");
 const subjectInput = document.getElementById("subjectInput");
 
-function loadPlatforms(){
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (Array.isArray(saved)) return saved;
-  } catch (error) {}
-  return JSON.parse(JSON.stringify(defaultPlatforms));
-}
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    },
+    ...options
+  });
 
-function savePlatforms(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(platforms));
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "Error de servidor");
+  }
+  return data;
 }
 
 function showToast(text){
@@ -369,52 +344,95 @@ function showToast(text){
   setTimeout(() => toast.classList.remove("show"), 1400);
 }
 
-function unlockAdmin(){
-  sessionStorage.setItem(SESSION_KEY, "yes");
+function hideLogin(){
   loginWall.classList.add("hidden");
 }
 
-if (sessionStorage.getItem(SESSION_KEY) === "yes") {
-  loginWall.classList.add("hidden");
+function showLogin(){
+  loginWall.classList.remove("hidden");
 }
 
-loginForm.addEventListener("submit", event => {
+async function checkSession(){
+  try {
+    const data = await api("/admin-api/me");
+    if (data.authenticated) {
+      hideLogin();
+      await loadRules();
+    } else {
+      showLogin();
+    }
+  } catch (error) {
+    showLogin();
+  }
+}
+
+async function loadRules(){
+  try {
+    const data = await api("/admin-api/rules");
+    platforms = Array.isArray(data.platforms) ? data.platforms : [];
+    if (!platforms.length) throw new Error("No hay plataformas configuradas");
+    if (selected >= platforms.length) selected = 0;
+    render();
+  } catch (error) {
+    showToast(error.message);
+    showLogin();
+  }
+}
+
+async function saveRules(){
+  const data = await api("/admin-api/rules", {
+    method: "PUT",
+    body: JSON.stringify({ platforms })
+  });
+  platforms = Array.isArray(data.platforms) ? data.platforms : platforms;
+  render();
+}
+
+loginForm.addEventListener("submit", async event => {
   event.preventDefault();
-  if (adminPass.value === ADMIN_DEMO_KEY) {
+  try {
+    await api("/admin-api/login", {
+      method: "POST",
+      body: JSON.stringify({ password: adminPass.value })
+    });
     adminPass.value = "";
-    unlockAdmin();
+    hideLogin();
+    await loadRules();
     showToast("Acceso concedido");
-  } else {
-    showToast("Clave incorrecta");
+  } catch (error) {
+    showToast(error.message || "Clave incorrecta");
   }
 });
 
-document.getElementById("logoutBtn").addEventListener("click", () => {
-  sessionStorage.removeItem(SESSION_KEY);
-  loginWall.classList.remove("hidden");
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  try {
+    await api("/admin-api/logout", { method: "POST", body: "{}" });
+  } catch (error) {}
+  showLogin();
 });
 
 function render(){
+  if (!platforms.length) return;
   const current = platforms[selected];
-  document.documentElement.style.setProperty("--accent", current.color);
+  document.documentElement.style.setProperty("--accent", current.color || "#e50914");
 
   serviceBoard.innerHTML = platforms.map((p,i)=>`
-    <button class="service-card ${i===selected ? "active" : ""}" style="--c:${p.color}" onclick="selectPlatform(${i})">
+    <button class="service-card ${i===selected ? "active" : ""}" style="--c:${p.color || "#e50914"}" onclick="selectPlatform(${i})">
       <span class="service-top">
-        <span class="service-badge">${p.short}</span>
-        <small>${p.subjects.length} asuntos</small>
+        <span class="service-badge">${escapeHtml(p.short || "SV")}</span>
+        <small>${(p.subjects || []).length} asuntos</small>
       </span>
-      <b>${p.icon} ${p.name}</b>
+      <b>${escapeHtml(p.icon || "✉")} ${escapeHtml(p.name || "Servicio")}</b>
     </button>
   `).join("");
 
-  title.textContent = "Reglas de " + current.name;
-  subtitle.textContent = "Administra asuntos reconocidos para " + current.name + ".";
-  count.textContent = current.subjects.length;
-  statusTitle.textContent = current.name + " activo";
-  statusText.textContent = current.subjects.length + " asuntos configurados para búsqueda interna.";
+  title.textContent = "Reglas de " + (current.name || "Servicio");
+  subtitle.textContent = "Administra asuntos reconocidos para " + (current.name || "este servicio") + ".";
+  count.textContent = (current.subjects || []).length;
+  statusTitle.textContent = (current.name || "Servicio") + " activo";
+  statusText.textContent = (current.subjects || []).length + " asuntos configurados para búsqueda interna.";
 
-  subjectList.innerHTML = current.subjects.length
+  subjectList.innerHTML = (current.subjects || []).length
     ? current.subjects.map((s,i)=>`
       <div class="subject">
         <span>${escapeHtml(s)}</span>
@@ -429,25 +447,35 @@ function selectPlatform(i){
   render();
 }
 
-function addSubject(){
+async function addSubject(){
   const value = subjectInput.value.trim();
   if(!value){
     showToast("Escribe un asunto");
     return;
   }
 
+  platforms[selected].subjects = platforms[selected].subjects || [];
   platforms[selected].subjects.push(value);
-  savePlatforms();
   subjectInput.value = "";
-  render();
-  showToast("Asunto agregado");
+
+  try {
+    await saveRules();
+    showToast("Asunto guardado");
+  } catch (error) {
+    showToast(error.message || "No se pudo guardar");
+    await loadRules();
+  }
 }
 
-function removeSubject(i){
+async function removeSubject(i){
   platforms[selected].subjects.splice(i, 1);
-  savePlatforms();
-  render();
-  showToast("Asunto eliminado");
+  try {
+    await saveRules();
+    showToast("Asunto eliminado");
+  } catch (error) {
+    showToast(error.message || "No se pudo guardar");
+    await loadRules();
+  }
 }
 
 function exportRules(){
@@ -474,7 +502,7 @@ subjectInput.addEventListener("keydown", e => {
   if(e.key === "Enter") addSubject();
 });
 
-render();
+checkSession();
 </script>
 </body>
 </html>

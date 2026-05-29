@@ -9,6 +9,10 @@
       "destination": "https://code-ylhz.onrender.com/health"
     },
     {
+      "source": "/admin-api/(.*)",
+      "destination": "https://code-ylhz.onrender.com/admin-api/$1"
+    },
+    {
       "source": "/auth/(.*)",
       "destination": "https://code-ylhz.onrender.com/auth/$1"
     },
