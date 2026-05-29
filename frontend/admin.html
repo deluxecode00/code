@@ -89,11 +89,11 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
   background:rgba(255,255,255,.055);
   border-radius:22px;
   padding:14px;
-  min-height:116px;
+  height:116px;
   text-align:left;
-  transition:.18s ease;
+  transition:background .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
-.service-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.085)}
+.service-card:hover{background:rgba(255,255,255,.085)}
 .service-card.active{
   border-color:color-mix(in srgb,var(--c) 60%,rgba(255,255,255,.12));
   background:linear-gradient(180deg,color-mix(in srgb,var(--c) 18%,transparent),rgba(255,255,255,.045));
@@ -133,11 +133,22 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
   display:grid;
   grid-template-columns:1fr 310px;
   gap:18px;
+  align-items:start;
 }
 .add-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:16px}
-.subject-list{display:grid;gap:10px}
+.subject-list{
+  display:grid;
+  gap:10px;
+  min-height:214px;
+  max-height:360px;
+  overflow:auto;
+  padding-right:4px;
+  align-content:start;
+  scrollbar-width:thin;
+}
 .subject{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-height:58px;
   background:rgba(255,255,255,.055);
   border:1px solid rgba(255,255,255,.10);
   border-radius:16px;
@@ -155,6 +166,9 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
 .info h4{margin:0 0 8px;font-size:15px}
 .info p{margin:0;color:#9ca3af;line-height:1.5;font-size:13px}
 .empty{
+  min-height:120px;
+  display:grid;
+  place-items:center;
   padding:24px;
   text-align:center;
   color:#9ca3af;
@@ -215,7 +229,7 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
 }
 @media(max-width:620px){
   .service-board{grid-template-columns:1fr 1fr}
-  .service-card{min-height:104px}
+  .service-card{height:104px}
   .workspace-head,.workspace-body{padding:16px}
   .add-row{grid-template-columns:1fr}
 }
@@ -443,8 +457,10 @@ function render(){
 }
 
 function selectPlatform(i){
+  const currentScroll = window.scrollY;
   selected = i;
   render();
+  requestAnimationFrame(() => window.scrollTo(0, currentScroll));
 }
 
 async function addSubject(){

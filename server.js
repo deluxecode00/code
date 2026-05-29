@@ -299,7 +299,7 @@ async function searchEmailsByPlataforma(plataformaKey, destinatario = null) {
   if (destinatario) {
     query = `(to:${destinatario} OR deliveredto:${destinatario}) AND (${subjectQuery})`;
   }
-  console.log(`🔍 Consulta Gmail: ${query}`);
+  // No se registra la búsqueda ni el correo consultado para evitar guardar historial.
 
   try {
     const response = await gmail.users.messages.list({
@@ -309,7 +309,7 @@ async function searchEmailsByPlataforma(plataformaKey, destinatario = null) {
     });
 
     const messages = response.data.messages || [];
-    console.log(`📧 Encontrados ${messages.length} correos`);
+    // Solo se procesan resultados en memoria; no se guarda historial.
 
     const resultados = [];
     for (const msg of messages) {
