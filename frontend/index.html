@@ -560,9 +560,12 @@
 
     .result-item {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
       gap: 14px;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
       background: rgba(11,16,27,.76);
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 16px;
@@ -574,6 +577,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 0;
     }
 
     .result-main {
@@ -761,6 +765,99 @@
         font-size: 11px;
       }
     }
+  
+    @media (max-width: 640px) {
+      .results-area,
+      .results-list {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+      }
+
+      .result-item {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 18px;
+        overflow: hidden;
+      }
+
+      .result-main {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        width: 100%;
+      }
+
+      .result-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 13px;
+        font-size: 14px;
+      }
+
+      .result-text strong {
+        font-size: 13.5px;
+        line-height: 1.22;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .result-text span {
+        margin-top: 4px;
+        font-size: 12px;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .result-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) minmax(0, .9fr);
+        gap: 8px;
+        width: 100%;
+      }
+
+      .code-pill,
+      .copy-result-btn,
+      .view-btn {
+        width: 100%;
+        min-width: 0;
+        padding: 9px 6px;
+        border-radius: 13px;
+        font-size: 13px;
+        line-height: 1.1;
+        text-align: center;
+      }
+
+      .code-pill {
+        letter-spacing: .13em;
+        font-size: 13px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .copy-result-btn,
+      .view-btn {
+        font-size: 13.5px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .result-actions {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .code-pill {
+        grid-column: 1 / -1;
+        letter-spacing: .18em;
+      }
+    }
+
   </style>
 </head>
 
