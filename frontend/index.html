@@ -560,7 +560,7 @@
 
     .result-item {
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto;
       align-items: center;
       gap: 14px;
       background: rgba(11,16,27,.76);
@@ -568,6 +568,12 @@
       border-radius: 16px;
       padding: 15px 16px;
       backdrop-filter: blur(14px);
+    }
+
+    .result-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .result-main {
@@ -612,12 +618,26 @@
       white-space: nowrap;
     }
 
+    .copy-result-btn,
     .view-btn {
       border: 0;
       border-radius: 12px;
       padding: 11px 16px;
       color: white;
       font-weight: 900;
+    }
+
+    .copy-result-btn {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.13);
+    }
+
+    .copy-result-btn:disabled {
+      opacity: .48;
+      cursor: not-allowed;
+    }
+
+    .view-btn {
       background: linear-gradient(135deg, var(--accent, var(--red)), color-mix(in srgb, var(--accent, var(--red)) 72%, #ffffff));
       box-shadow: 0 12px 26px color-mix(in srgb, var(--accent, var(--red)) 20%, transparent);
     }
@@ -674,7 +694,13 @@
     @media (max-width: 860px) {
       .service-grid { grid-template-columns: repeat(2, 1fr); }
       .result-item { grid-template-columns: 1fr; }
+      .result-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+      }
       .code-pill,
+      .copy-result-btn,
       .view-btn { width: 100%; text-align: center; }
       .topbar { align-items: flex-start; flex-direction: column; }
       .topbar-actions { width: 100%; display: block; }
@@ -941,8 +967,11 @@
                 <p>${escapeHtml(fecha)}${from}</p>
               </div>
             </div>
-            <div class="code-pill">${code ? escapeHtml(code) : "Ver correo"}</div>
-            <button class="view-btn" type="button" data-index="${index}">Ver</button>
+            <div class="result-actions">
+              <div class="code-pill">${code ? escapeHtml(code) : "Sin código"}</div>
+              <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>Copiar</button>
+              <button class="view-btn" type="button" data-index="${index}">Ver</button>
+            </div>
           </article>
         `;
       }).join("");
@@ -960,6 +989,23 @@
         </div>
         <div class="results-list">${rows}</div>
       `;
+
+      resultsArea.querySelectorAll(".copy-result-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const correo = correos[Number(btn.dataset.index)];
+          const code = extractCode(correo);
+          if (!code) return;
+
+          try {
+            await navigator.clipboard.writeText(code);
+            const previousText = btn.textContent;
+            btn.textContent = "Copiado";
+            setTimeout(() => btn.textContent = previousText, 1300);
+          } catch (error) {
+            alert("Código: " + code);
+          }
+        });
+      });
 
       resultsArea.querySelectorAll(".view-btn").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -981,9 +1027,128 @@
     }
 
     function extractCode(correo) {
-      const text = stripHtml(`${correo.subject || ""} ${correo.snippet || ""} ${correo.body || ""}`);
-      const match = text.match(/\b\d{4,8}\b/);
-      return match ? match[0] : "";
+      const sources = [
+        visibleTextFromHtml(correo.body || ""),
+        stripHtml(correo.snippet || ""),
+        stripHtml(correo.subject || "")
+      ];
+
+      for (const source of sources) {
+        const code = pickBestCode(source);
+        if (code) return code;
+      }
+
+      return "";
+    }
+
+    function pickBestCode(text) {
+      const clean = normalizeText(text);
+      if (!clean) return "";
+
+      const candidates = [];
+
+      const compactMatches = clean.matchAll(/\b\d{4,8}\b/g);
+      for (const match of compactMatches) {
+        candidates.push({
+          value: match[0],
+          index: match.index || 0,
+          raw: match[0]
+        });
+      }
+
+      const spacedMatches = clean.matchAll(/(?:\b\d[\s\-]){3,7}\d\b/g);
+      for (const match of spacedMatches) {
+        const value = match[0].replace(/\D/g, "");
+        if (value.length >= 4 && value.length <= 8) {
+          candidates.push({
+            value,
+            index: match.index || 0,
+            raw: match[0]
+          });
+        }
+      }
+
+      if (!candidates.length) return "";
+
+      const unique = [];
+      const seen = new Set();
+      for (const candidate of candidates) {
+        const key = `${candidate.value}-${candidate.index}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(candidate);
+        }
+      }
+
+      unique.sort((a, b) => scoreCodeCandidate(b, clean) - scoreCodeCandidate(a, clean));
+      return unique[0].value;
+    }
+
+    function scoreCodeCandidate(candidate, text) {
+      const value = candidate.value;
+      const start = Math.max(0, candidate.index - 90);
+      const end = Math.min(text.length, candidate.index + String(candidate.raw).length + 90);
+      const context = text.slice(start, end).toLowerCase();
+
+      let score = 0;
+
+      if (/(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp)/i.test(context)) {
+        score += 100;
+      }
+
+      if (/(\bc[oó]digo\b|\bcode\b|\botp\b)/i.test(context)) {
+        score += 40;
+      }
+
+      if (value.length === 6) score += 18;
+      if (value.length === 4) score += 12;
+      if (value.length === 5) score += 8;
+      if (value.length >= 7) score += 4;
+
+      if (/^\d{4}$/.test(value) && /^20\d{2}$/.test(value)) score -= 70;
+      if (/[\/:.-]\s*$/.test(text.slice(Math.max(0, candidate.index - 2), candidate.index))) score -= 25;
+
+      score -= candidate.index / 100000;
+
+      return score;
+    }
+
+    function visibleTextFromHtml(value) {
+      const html = String(value || "");
+      if (!html.trim()) return "";
+
+      try {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+
+        doc.querySelectorAll("script, style, meta, link, title").forEach(el => el.remove());
+
+        doc.querySelectorAll("[style]").forEach(el => {
+          const style = String(el.getAttribute("style") || "").toLowerCase().replace(/\s+/g, "");
+          const hidden =
+            style.includes("display:none") ||
+            style.includes("visibility:hidden") ||
+            style.includes("opacity:0") ||
+            style.includes("font-size:0") ||
+            style.includes("max-height:0") ||
+            style.includes("height:0") ||
+            style.includes("width:0") ||
+            style.includes("overflow:hidden");
+          if (hidden) el.remove();
+        });
+
+        doc.querySelectorAll("[hidden], [aria-hidden='true']").forEach(el => el.remove());
+
+        return doc.body ? doc.body.textContent || "" : doc.documentElement.textContent || "";
+      } catch (error) {
+        return stripHtml(html);
+      }
+    }
+
+    function normalizeText(value) {
+      return String(value || "")
+        .replace(/\u00a0/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
     }
 
     function stripHtml(value) {
