@@ -1332,6 +1332,16 @@
             table {
               max-width: 100%;
             }
+
+            body * {
+              scrollbar-width: none !important;
+            }
+
+            body *::-webkit-scrollbar {
+              display: none !important;
+              width: 0 !important;
+              height: 0 !important;
+            }
           </style>
         </head>
         <body>
@@ -1520,11 +1530,6 @@
               border: 1px solid rgba(255,255,255,.14);
             }
 
-
-            iframe.no-frame-scroll {
-              overflow: hidden;
-            }
-
             iframe {
               display: block;
               width: 100%;
@@ -1668,12 +1673,69 @@
             document.getElementById("meta").textContent = metaText;
             document.getElementById("pill").textContent = service;
             const frame = document.getElementById("frame");
+            frame.setAttribute("scrolling", "auto");
             frame.srcdoc = emailDocument;
 
-            if (${JSON.stringify(plataforma.nombre || "")}.toLowerCase().includes("netflix")) {
-              frame.setAttribute("scrolling", "no");
-              frame.classList.add("no-frame-scroll");
+            function expandNestedScrollContainers() {
+              try {
+                const doc = frame.contentDocument || frame.contentWindow.document;
+                if (!doc || !doc.body) return;
+
+                doc.documentElement.style.setProperty("overflow-y", "auto", "important");
+                doc.documentElement.style.setProperty("overflow-x", "hidden", "important");
+                doc.body.style.setProperty("overflow-y", "visible", "important");
+                doc.body.style.setProperty("overflow-x", "hidden", "important");
+                doc.body.style.setProperty("height", "auto", "important");
+                doc.body.style.setProperty("max-height", "none", "important");
+
+                const elements = Array.from(doc.body.querySelectorAll("*"));
+
+                elements.forEach(el => {
+                  el.style.setProperty("scrollbar-width", "none", "important");
+                });
+
+                elements.forEach(el => {
+                  const style = frame.contentWindow.getComputedStyle(el);
+                  const overflowY = style.overflowY;
+                  const overflow = style.overflow;
+
+                  const looksScrollable =
+                    overflowY === "auto" ||
+                    overflowY === "scroll" ||
+                    overflow === "auto" ||
+                    overflow === "scroll" ||
+                    el.scrollHeight > el.clientHeight + 12;
+
+                  if (!looksScrollable) return;
+
+                  const realHeight = Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight);
+
+                  if (realHeight > 0) {
+                    el.style.setProperty("overflow", "visible", "important");
+                    el.style.setProperty("overflow-y", "visible", "important");
+                    el.style.setProperty("overflow-x", "visible", "important");
+                    el.style.setProperty("max-height", "none", "important");
+                    el.style.setProperty("height", realHeight + "px", "important");
+                  }
+                });
+
+                // Ajuste extra para wrappers comunes de emails.
+                doc.querySelectorAll("div, table, tbody, tr, td").forEach(el => {
+                  if (el.scrollHeight > el.clientHeight + 12) {
+                    el.style.setProperty("overflow", "visible", "important");
+                    el.style.setProperty("max-height", "none", "important");
+                    el.style.setProperty("height", el.scrollHeight + "px", "important");
+                  }
+                });
+              } catch (error) {}
             }
+
+            frame.addEventListener("load", () => {
+              expandNestedScrollContainers();
+              setTimeout(expandNestedScrollContainers, 250);
+              setTimeout(expandNestedScrollContainers, 800);
+              setTimeout(expandNestedScrollContainers, 1600);
+            });
 
             const copyBtn = document.getElementById("copyBtn");
             const toast = document.getElementById("toast");
