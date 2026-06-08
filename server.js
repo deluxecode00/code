@@ -416,144 +416,12 @@ function collectCodeCandidates(text = '', source = 'body') {
 }
 
 
-function isLikelyNetflixTemporalCodeEmail({ subject = '', body = '' } = {}) {
+function isNetflixTemporaryButtonEmail({ subject = '', body = '' } = {}) {
   const text = `${subject} ${stripHtmlForCode(body)}`.toLowerCase();
-  return /netflix/i.test(text) && /(acceso temporal|obtener c[oó]digo|get code|view code|c[oó]digo vence|15 minutos)/i.test(text);
+
+  return /netflix/i.test(text) &&
+    /(acceso temporal|obtener c[oó]digo|get code|view code|mostrar c[oó]digo|ver c[oó]digo)/i.test(text);
 }
-
-function isEmailOlderThanMinutes(dateValue = '', minutes = 35) {
-  const timestamp = Date.parse(dateValue);
-  if (!timestamp) return false;
-  return Date.now() - timestamp > minutes * 60 * 1000;
-}
-
-function decodeHtmlEntitiesBasic(value = '') {
-  return String(value || '')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>');
-}
-
-function extractActionLinksFromEmail(html = '') {
-  const links = [];
-  const source = String(html || '');
-
-  const anchorPattern = /<a\b[^>]*href\s*=\s*(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi;
-  let match;
-
-  while ((match = anchorPattern.exec(source)) !== null) {
-    const href = decodeHtmlEntitiesBasic(match[2] || '').trim();
-    const text = stripHtmlForCode(match[3] || '');
-
-    if (!href || !/^https?:\/\//i.test(href)) continue;
-
-    const isCodeButton = /(obtener|ver|mostrar|get|view|show|retrieve)\s+(el\s+)?c[oó]digo|c[oó]digo|code/i.test(text);
-    const isNetflixLink = /netflix/i.test(href);
-
-    if (isCodeButton && isNetflixLink) {
-      links.push(href);
-    }
-  }
-
-  return [...new Set(links)];
-}
-
-async function fetchHtmlWithTimeout(url, timeoutMs = 9000) {
-  if (typeof fetch !== 'function') {
-    throw new Error('fetch no está disponible en esta versión de Node.');
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    return await response.text();
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function extractCodeFromNetflixExternalPage(html = '') {
-  const text = stripHtmlForCode(html);
-
-  const strongPatterns = [
-    /usa\s+este\s+c[oó]digo[\s\S]{0,220}?((?:\d[\s\-]?){4,8})/i,
-    /ingresa\s+este\s+c[oó]digo[\s\S]{0,220}?((?:\d[\s\-]?){4,8})/i,
-    /c[oó]digo\s+para\s+ver\s+netflix[\s\S]{0,220}?((?:\d[\s\-]?){4,8})/i,
-    /c[oó]digo\s+de\s+verificaci[oó]n\s*:?\s*((?:\d[\s\-]?){4,8})/i,
-    /verification\s+code\s*:?\s*((?:\d[\s\-]?){4,8})/i
-  ];
-
-  for (const pattern of strongPatterns) {
-    const match = text.match(pattern);
-    if (!match) continue;
-
-    const code = String(match[1] || '').replace(/\D/g, '');
-    if (isUsablePreviewCode(code)) return code;
-  }
-
-  // Fallback para páginas donde el número grande aparece cerca de textos de vencimiento.
-  const contextPattern = /(?:netflix|dispositivo|acceso temporal|15 minutos|vence)[\s\S]{0,260}?((?:\d[\s\-]?){4,8})/i;
-  const contextMatch = text.match(contextPattern);
-  if (contextMatch) {
-    const code = String(contextMatch[1] || '').replace(/\D/g, '');
-    if (isUsablePreviewCode(code)) return code;
-  }
-
-  return '';
-}
-
-async function extractExternalNetflixCodeFromEmail({ subject = '', body = '', date = '' } = {}) {
-  if (!isLikelyNetflixTemporalCodeEmail({ subject, body })) return '';
-
-  // Los links de obtener código vencen rápido. Si está viejo, no intentamos resolverlo.
-  if (isEmailOlderThanMinutes(date, 35)) return '';
-
-  const links = extractActionLinksFromEmail(body);
-  if (!links.length) return '';
-
-  for (const link of links) {
-    try {
-      const pageHtml = await fetchHtmlWithTimeout(link);
-      const code = extractCodeFromNetflixExternalPage(pageHtml);
-      if (code) return code;
-    } catch (error) {
-      console.warn('No se pudo resolver enlace Obtener código:', error.message);
-    }
-  }
-
-  return '';
-}
-
-async function resolvePreviewCode({ subject = '', snippet = '', body = '', date = '' } = {}) {
-  const externalCode = await extractExternalNetflixCodeFromEmail({ subject, body, date });
-  if (externalCode) return externalCode;
-
-  // Para correos temporales viejos o vencidos, evitamos inventar códigos.
-  if (isLikelyNetflixTemporalCodeEmail({ subject, body }) && isEmailOlderThanMinutes(date, 35)) {
-    return '';
-  }
-
-  return extractPreviewCode({ subject, snippet, body });
-}
-
 
 function extractPreviewCode({ subject = '', snippet = '', body = '' } = {}) {
   const subjectText = stripHtmlForCode(subject);
@@ -565,6 +433,14 @@ function extractPreviewCode({ subject = '', snippet = '', body = '' } = {}) {
     extractCodeNearVerificationLabel(snippetText);
 
   if (directCode) return directCode;
+
+  // Importante:
+  // Los correos "Tu código de acceso temporal de Netflix" tienen un botón "Obtener código".
+  // El código NO está directamente en el correo. Si aquí intentamos adivinar, suele salir 95032
+  // u otro número del pie de página. Por eso devolvemos vacío y no inventamos.
+  if (isNetflixTemporaryButtonEmail({ subject, body })) {
+    return '';
+  }
 
   const subjectHasCodeSignal = /(c[oó]digo|code|acceso|access|login|sesi[oó]n|verification|verificaci[oó]n|vence|expires|otp)/i.test(subjectText);
 
@@ -709,13 +585,12 @@ async function fetchFullMessages(gmail, messages = [], destinatario = null) {
     }
 
     const subject = headers['subject'] || '';
-    const date = headers['date'] || '';
-    const previewCode = await resolvePreviewCode({ subject, snippet, body, date });
+    const previewCode = extractPreviewCode({ subject, snippet, body });
 
     resultados.push({
       id: msg.id,
       from: headers['from'] || 'Desconocido',
-      date,
+      date: headers['date'] || '',
       subject,
       body,
       snippet,
