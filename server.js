@@ -226,12 +226,85 @@ function getRulesSource() {
   return 'default';
 }
 
+function escapeGmailQuery(value = '') {
+  return String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .trim();
+}
+
+function sanitizeEmail(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '');
+}
+
+function canonicalGmailEmail(value = '') {
+  const email = sanitizeEmail(value);
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return email;
+
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    return `${local.split('+')[0].replace(/\./g, '')}@gmail.com`;
+  }
+
+  return email;
+}
+
+function emailVariants(value = '') {
+  const exact = sanitizeEmail(value);
+  const canonical = canonicalGmailEmail(value);
+  return [...new Set([exact, canonical].filter(Boolean))];
+}
+
+function compactForEmailMatch(value = '') {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, '');
+}
+
+function canonicalizeGmailAddressesInText(text = '') {
+  return String(text || '').replace(/[a-z0-9._%+-]+@(gmail|googlemail)\.com/gi, match => canonicalGmailEmail(match));
+}
+
+function messageMatchesRecipient(headers = {}, body = '', snippet = '', destinatario = '') {
+  const variants = emailVariants(destinatario);
+  if (!variants.length) return true;
+
+  const headerFields = [
+    headers['to'],
+    headers['delivered-to'],
+    headers['x-original-to'],
+    headers['x-forwarded-to'],
+    headers['cc'],
+    headers['bcc'],
+    headers['reply-to']
+  ].filter(Boolean).join(' ');
+
+  const exactHaystack = compactForEmailMatch(`${headerFields} ${body || ''} ${snippet || ''}`);
+  const canonicalHaystack = canonicalizeGmailAddressesInText(exactHaystack);
+
+  return variants.some(email => {
+    const exact = compactForEmailMatch(email);
+    const canonical = canonicalGmailEmail(email);
+    return exactHaystack.includes(exact) || canonicalHaystack.includes(canonical);
+  });
+}
+
 function buildSubjectQuery(plataformaKey) {
   const asuntos = loadPlataformas()[plataformaKey]?.asuntos || [];
   if (asuntos.length === 0) return '';
-  return asuntos.map(asunto => `subject:"${asunto.replace(/"/g, '\\"')}"`).join(' OR ');
+  return asuntos.map(asunto => `subject:"${escapeGmailQuery(asunto)}"`).join(' OR ');
 }
 
+function buildRecipientQuery(destinatario = '') {
+  const email = sanitizeEmail(destinatario);
+  if (!email) return '';
+
+  const safe = escapeGmailQuery(email);
+  return `{to:${safe} deliveredto:${safe} cc:${safe} bcc:${safe} "${safe}"}`;
+}
 
 function decodeBase64(data) {
   return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
@@ -281,6 +354,49 @@ function parseGmailTokens() {
   }
 }
 
+async function fetchFullMessages(gmail, messages = [], destinatario = null) {
+  const resultados = [];
+
+  for (const msg of messages) {
+    const fullMsg = await gmail.users.messages.get({
+      userId: 'me',
+      id: msg.id,
+      format: 'full'
+    });
+
+    const payload = fullMsg.data.payload;
+    const headers = getHeaders(payload);
+    const body = getEmailBody(payload);
+    const snippet = fullMsg.data.snippet || '';
+
+    if (!messageMatchesRecipient(headers, body, snippet, destinatario)) {
+      continue;
+    }
+
+    resultados.push({
+      id: msg.id,
+      from: headers['from'] || 'Desconocido',
+      date: headers['date'] || '',
+      subject: headers['subject'] || '',
+      body,
+      snippet
+    });
+  }
+
+  resultados.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return resultados;
+}
+
+async function gmailListMessages(gmail, query, maxResults = 20) {
+  const response = await gmail.users.messages.list({
+    userId: 'me',
+    q: query,
+    maxResults
+  });
+
+  return response.data.messages || [];
+}
+
 async function searchEmailsByPlataforma(plataformaKey, destinatario = null) {
   const missing = validateGoogleConfig();
   if (missing.length) {
@@ -295,44 +411,41 @@ async function searchEmailsByPlataforma(plataformaKey, destinatario = null) {
   const subjectQuery = buildSubjectQuery(plataformaKey);
   if (!subjectQuery) return [];
 
-  let query = `(${subjectQuery})`;
-  if (destinatario) {
-    query = `(to:${destinatario} OR deliveredto:${destinatario}) AND (${subjectQuery})`;
+  const cleanDestinatario = sanitizeEmail(destinatario);
+  const recipientQuery = buildRecipientQuery(cleanDestinatario);
+
+  const queries = [];
+  if (recipientQuery) {
+    queries.push(`(${subjectQuery}) ${recipientQuery}`);
+    queries.push(`(${subjectQuery}) "${escapeGmailQuery(cleanDestinatario)}"`);
   }
-  // No se registra la búsqueda ni el correo consultado para evitar guardar historial.
+  queries.push(`(${subjectQuery})`);
 
   try {
-    const response = await gmail.users.messages.list({
-      userId: 'me',
-      q: query,
-      maxResults: 5
-    });
+    const seenMessageIds = new Set();
 
-    const messages = response.data.messages || [];
-    // Solo se procesan resultados en memoria; no se guarda historial.
+    for (let i = 0; i < queries.length; i++) {
+      const query = queries[i];
+      const maxResults = i === queries.length - 1 ? 50 : 20;
+      const messages = await gmailListMessages(gmail, query, maxResults);
+      const freshMessages = messages.filter(msg => {
+        if (!msg.id || seenMessageIds.has(msg.id)) return false;
+        seenMessageIds.add(msg.id);
+        return true;
+      });
 
-    const resultados = [];
-    for (const msg of messages) {
-      const fullMsg = await gmail.users.messages.get({
-        userId: 'me',
-        id: msg.id,
-        format: 'full'
-      });
-      const payload = fullMsg.data.payload;
-      const headers = getHeaders(payload);
-      const body = getEmailBody(payload);
-      resultados.push({
-        id: msg.id,
-        from: headers['from'] || 'Desconocido',
-        date: headers['date'] || '',
-        subject: headers['subject'] || '',
-        body,
-        snippet: fullMsg.data.snippet
-      });
+      const resultados = await fetchFullMessages(gmail, freshMessages, cleanDestinatario);
+
+      if (resultados.length) {
+        return resultados.slice(0, 5);
+      }
+
+      if (!cleanDestinatario) {
+        break;
+      }
     }
 
-    resultados.sort((a, b) => new Date(b.date) - new Date(a.date));
-    return resultados;
+    return [];
   } catch (error) {
     const googleError = error?.response?.data?.error || error?.message || '';
 

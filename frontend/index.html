@@ -606,10 +606,18 @@
       text-overflow: ellipsis;
     }
 
+    .result-text {
+      min-width: 0;
+      overflow: hidden;
+    }
+
     .result-item p {
       margin: 5px 0 0;
       color: var(--muted);
       font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .code-pill {
@@ -798,7 +806,7 @@
         font-size: 14px;
       }
 
-      .result-text strong {
+      .result-text h3 {
         font-size: 13.5px;
         line-height: 1.22;
         white-space: nowrap;
@@ -806,7 +814,7 @@
         text-overflow: ellipsis;
       }
 
-      .result-text span {
+      .result-text p {
         margin-top: 4px;
         font-size: 12px;
         line-height: 1.25;
@@ -1059,7 +1067,7 @@
           <article class="result-item" style="--accent:${plataforma.color}">
             <div class="result-main">
               <span class="result-icon">${plataforma.icono}</span>
-              <div>
+              <div class="result-text">
                 <h3>${escapeHtml(correo.subject || "Correo sin asunto")}</h3>
                 <p>${escapeHtml(fecha)}${from}</p>
               </div>
@@ -1204,6 +1212,14 @@
 
       if (/^\d{4}$/.test(value) && /^20\d{2}$/.test(value)) score -= 70;
       if (/[\/:.-]\s*$/.test(text.slice(Math.max(0, candidate.index - 2), candidate.index))) score -= 25;
+
+      if (/(los gatos|albright|california|\bca\b|ee\.?\s*uu|united states|preguntas|questions|llama|call|address|direcci[oó]n|postal|zip|way|street|avenue)/i.test(context)) {
+        score -= 180;
+      }
+
+      if (!/(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp)/i.test(context)) {
+        score -= 35;
+      }
 
       score -= candidate.index / 100000;
 
