@@ -420,6 +420,12 @@ function extractPreviewCode({ subject = '', snippet = '', body = '' } = {}) {
   const snippetText = stripHtmlForCode(snippet);
   const bodyText = stripHtmlForCode(body);
 
+  const directCode =
+    extractCodeNearVerificationLabel(bodyText) ||
+    extractCodeNearVerificationLabel(snippetText);
+
+  if (directCode) return directCode;
+
   const subjectHasCodeSignal = /(c[oó]digo|code|acceso|access|login|sesi[oó]n|verification|verificaci[oó]n|vence|expires|otp)/i.test(subjectText);
 
   const candidates = [
@@ -449,6 +455,49 @@ function extractPreviewCode({ subject = '', snippet = '', body = '' } = {}) {
     .sort((a, b) => b.score - a.score);
 
   return scored[0]?.value || '';
+}
+
+function extractCodeNearVerificationLabel(text = '') {
+  const clean = normalizeForCode(text);
+  if (!clean) return '';
+
+  const patterns = [
+    /c[oó]digo\s+de\s+verificaci[oó]n\s*:?\s*((?:\d[\s\-]?){4,8})/i,
+    /verification\s+code\s*:?\s*((?:\d[\s\-]?){4,8})/i,
+    /c[oó]digo\s*:?\s*((?:\d[\s\-]?){4,8})/i,
+    /code\s*:?\s*((?:\d[\s\-]?){4,8})/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = clean.match(pattern);
+    if (!match) continue;
+
+    const code = String(match[1] || '').replace(/\D/g, '');
+    if (isUsablePreviewCode(code)) return code;
+  }
+
+  // Caso Netflix: el texto puede venir como "Código de verificación:" y el número unos caracteres después.
+  const labelMatch = clean.match(/c[oó]digo\s+de\s+verificaci[oó]n\s*:?/i);
+  if (labelMatch) {
+    const afterLabel = clean.slice(labelMatch.index + labelMatch[0].length, labelMatch.index + labelMatch[0].length + 160);
+    const spaced = afterLabel.match(/(?:\b\d[\s\-]){3,7}\d\b/);
+    if (spaced) {
+      const code = spaced[0].replace(/\D/g, '');
+      if (isUsablePreviewCode(code)) return code;
+    }
+
+    const compact = afterLabel.match(/\b\d{4,8}\b/);
+    if (compact && isUsablePreviewCode(compact[0])) return compact[0];
+  }
+
+  return '';
+}
+
+function isUsablePreviewCode(code = '') {
+  if (!/^\d{4,8}$/.test(code)) return false;
+  if (/^20\d{2}$/.test(code)) return false;
+  if (['95032', '0800', '121'].includes(code)) return false;
+  return true;
 }
 
 
