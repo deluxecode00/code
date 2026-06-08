@@ -1316,12 +1316,45 @@
           <meta name="viewport" content="width=device-width,initial-scale=1">
           <base target="_blank">
           <style>
-            html, body {
+            html {
               margin: 0;
               padding: 0;
               background: #ffffff;
               color: #111827;
-              overflow-x: auto;
+              overflow-y: auto !important;
+              overflow-x: hidden !important;
+            }
+
+            body {
+              margin: 0;
+              padding: 0;
+              background: #ffffff;
+              color: #111827;
+              overflow: visible !important;
+              height: auto !important;
+              max-height: none !important;
+              scrollbar-width: none !important;
+              -ms-overflow-style: none !important;
+            }
+
+            body::-webkit-scrollbar {
+              display: none !important;
+              width: 0 !important;
+              height: 0 !important;
+            }
+
+            body * {
+              max-width: 100%;
+              overflow: visible !important;
+              max-height: none !important;
+              scrollbar-width: none !important;
+              -ms-overflow-style: none !important;
+            }
+
+            body *::-webkit-scrollbar {
+              display: none !important;
+              width: 0 !important;
+              height: 0 !important;
             }
 
             img {
@@ -1331,18 +1364,6 @@
 
             table {
               max-width: 100%;
-            }
-
-            .cp-hide-inner-scrollbar {
-              scrollbar-width: none !important;
-              -ms-overflow-style: none !important;
-            }
-
-            .cp-hide-inner-scrollbar::-webkit-scrollbar {
-              width: 0 !important;
-              height: 0 !important;
-              display: none !important;
-              background: transparent !important;
             }
           </style>
         </head>
@@ -1678,74 +1699,34 @@
             frame.setAttribute("scrolling", "auto");
             frame.srcdoc = emailDocument;
 
-            function hideOnlyBadInnerScrollbars() {
+            function keepOnlyIframeScrollbar() {
               try {
                 const doc = frame.contentDocument || frame.contentWindow.document;
-                const win = frame.contentWindow;
-                if (!doc || !doc.body || !win) return;
+                if (!doc || !doc.body) return;
 
-                const root = doc.documentElement;
-                const body = doc.body;
+                doc.documentElement.style.setProperty("overflow-y", "auto", "important");
+                doc.documentElement.style.setProperty("overflow-x", "hidden", "important");
 
-                root.classList.remove("cp-hide-inner-scrollbar");
-                body.classList.remove("cp-hide-inner-scrollbar");
+                doc.body.style.setProperty("overflow", "visible", "important");
+                doc.body.style.setProperty("height", "auto", "important");
+                doc.body.style.setProperty("max-height", "none", "important");
+                doc.body.style.setProperty("scrollbar-width", "none", "important");
 
-                const rootHasMainScroll =
-                  root.scrollHeight > root.clientHeight + 12 ||
-                  body.scrollHeight > root.clientHeight + 12;
-
-                const candidates = Array.from(body.querySelectorAll("*")).filter(el => {
-                  const style = win.getComputedStyle(el);
-                  const overflowY = style.overflowY;
-                  const overflow = style.overflow;
-
-                  const canScroll =
-                    overflowY === "auto" ||
-                    overflowY === "scroll" ||
-                    overflow === "auto" ||
-                    overflow === "scroll" ||
-                    overflowY === "overlay" ||
-                    overflow === "overlay";
-
-                  return canScroll && el.scrollHeight > el.clientHeight + 12;
-                });
-
-                candidates.forEach(el => el.classList.remove("cp-hide-inner-scrollbar"));
-
-                if (!candidates.length) return;
-
-                // Si el documento principal ya tiene scroll, ese es el scroll bueno.
-                // Ocultamos las barras de los contenedores internos.
-                if (rootHasMainScroll) {
-                  candidates.forEach(el => el.classList.add("cp-hide-inner-scrollbar"));
-                  return;
-                }
-
-                // Si el scroll bueno también viene de un contenedor interno,
-                // dejamos visible el que esté más a la derecha y ocultamos los demás.
-                let keep = candidates[0];
-                let keepScore = -Infinity;
-
-                candidates.forEach(el => {
-                  const rect = el.getBoundingClientRect();
-                  const score = rect.right * 1000 + rect.height;
-                  if (score > keepScore) {
-                    keepScore = score;
-                    keep = el;
-                  }
-                });
-
-                candidates.forEach(el => {
-                  if (el !== keep) el.classList.add("cp-hide-inner-scrollbar");
+                doc.querySelectorAll("body *").forEach(el => {
+                  el.style.setProperty("overflow", "visible", "important");
+                  el.style.setProperty("overflow-x", "visible", "important");
+                  el.style.setProperty("overflow-y", "visible", "important");
+                  el.style.setProperty("max-height", "none", "important");
+                  el.style.setProperty("scrollbar-width", "none", "important");
+                  el.style.setProperty("-ms-overflow-style", "none", "important");
                 });
               } catch (error) {}
             }
 
             frame.addEventListener("load", () => {
-              hideOnlyBadInnerScrollbars();
-              setTimeout(hideOnlyBadInnerScrollbars, 250);
-              setTimeout(hideOnlyBadInnerScrollbars, 900);
-              setTimeout(hideOnlyBadInnerScrollbars, 1600);
+              keepOnlyIframeScrollbar();
+              setTimeout(keepOnlyIframeScrollbar, 250);
+              setTimeout(keepOnlyIframeScrollbar, 900);
             });
 
             const copyBtn = document.getElementById("copyBtn");
