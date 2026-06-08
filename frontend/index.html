@@ -1073,8 +1073,8 @@
               </div>
             </div>
             <div class="result-actions">
-              <div class="code-pill">${code ? escapeHtml(code) : "Ver correo"}</div>
-              <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>${code ? "Copiar" : "Abrir"}</button>
+              <div class="code-pill">${code ? escapeHtml(code) : "—"}</div>
+              <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>Copiar</button>
               <button class="view-btn" type="button" data-index="${index}">Ver</button>
             </div>
           </article>
@@ -1132,24 +1132,18 @@
     }
 
     function extractCode(correo) {
-      const snippetResult = pickBestCode(stripHtml(correo.snippet || ""), {
-        source: "snippet",
-        requireStrongSignal: true
-      });
-
-      if (snippetResult.code && snippetResult.score >= 90) {
-        return snippetResult.code;
-      }
-
       const bodyText = visibleTextFromHtml(correo.body || "");
-      const bodyResult = pickBestCode(bodyText, {
-        source: "body",
-        requireStrongSignal: true
-      });
+      const snippetText = stripHtml(correo.snippet || "");
+      const subjectText = stripHtml(correo.subject || "");
 
-      if (bodyResult.code && bodyResult.score >= 130) {
-        return bodyResult.code;
-      }
+      const bodyCode = pickBestCode(bodyText, { source: "body" });
+      if (bodyCode.code && bodyCode.score >= 70) return bodyCode.code;
+
+      const snippetCode = pickBestCode(snippetText, { source: "snippet" });
+      if (snippetCode.code && snippetCode.score >= 55) return snippetCode.code;
+
+      const mixedCode = pickBestCode(`${subjectText} ${snippetText} ${bodyText}`, { source: "mixed" });
+      if (mixedCode.code && mixedCode.score >= 85) return mixedCode.code;
 
       return "";
     }
@@ -1211,48 +1205,44 @@
     function scoreCodeCandidate(candidate, text, options = {}) {
       const value = candidate.value;
       const raw = String(candidate.raw || value);
-      const start = Math.max(0, candidate.index - 160);
-      const end = Math.min(text.length, candidate.index + raw.length + 160);
+      const start = Math.max(0, candidate.index - 180);
+      const end = Math.min(text.length, candidate.index + raw.length + 180);
       const context = text.slice(start, end).toLowerCase();
-      const before = text.slice(Math.max(0, candidate.index - 280), candidate.index).toLowerCase();
-      const after = text.slice(candidate.index + raw.length, Math.min(text.length, candidate.index + raw.length + 220)).toLowerCase();
+      const before = text.slice(Math.max(0, candidate.index - 180), candidate.index).toLowerCase();
+      const after = text.slice(candidate.index + raw.length, Math.min(text.length, candidate.index + raw.length + 180)).toLowerCase();
 
       let score = 0;
 
-      const codeWords = /(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp|vence|expires|caduca)/i;
-      const strongCodeWords = /(\bc[oó]digo\b|\bcode\b|\botp\b|verificaci[oó]n|verification|acceso|access)/i;
+      const codeWords = /(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp|vence|expires|caduca|15 minutos|minutes)/i;
+      const strongCodeWords = /(\bc[oó]digo\b|\bcode\b|\botp\b|verificaci[oó]n|verification|acceso|access|inicio de sesi[oó]n|login|vence|expires)/i;
       const footerWords = /(los gatos|albright|california|\bca\b|ee\.?\s*uu|united states|preguntas|questions|llama|call|address|direcci[oó]n|postal|zip|way|street|avenue|privacidad|privacy|t[eé]rminos|terms|centro de ayuda|help center|unsubscribe|cancelar suscripci[oó]n)/i;
-      const dateWords = /(202\d|20\d{2}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
 
-      if (codeWords.test(context)) score += 90;
+      if (codeWords.test(context)) score += 80;
       if (strongCodeWords.test(context)) score += 45;
+      if (strongCodeWords.test(before)) score += 25;
+      if (/(vence|expires|caduca|15 minutos|minutes)/i.test(after)) score += 30;
 
-      if (strongCodeWords.test(before)) score += 28;
-      if (/(vence|expires|caduca|15 minutos|minutes)/i.test(after)) score += 18;
+      if (options.source === "snippet") score += 18;
+      if (options.source === "body" && candidate.index < 2500) score += 18;
+      if (options.source === "body" && candidate.index > 4500) score -= 35;
 
-      if (options.source === "snippet") score += 30;
-      if (options.source === "body" && candidate.index < 1600) score += 18;
-      if (options.source === "body" && candidate.index > 3500) score -= 45;
+      if (value.length === 4) score += 22;
+      if (value.length === 6) score += 20;
+      if (value.length === 5) score += 8;
+      if (value.length >= 7) score -= 3;
 
-      if (value.length === 6) score += 22;
-      if (value.length === 4) score += 16;
-      if (value.length === 5) score += 6;
-      if (value.length >= 7) score -= 4;
-
-      // Evita falsos positivos frecuentes: años, ZIP/códigos postales, direcciones, teléfonos o pies de página.
+      // Filtros de falsos positivos: años, direcciones, teléfonos y pies de página.
       if (/^20\d{2}$/.test(value)) score -= 120;
       if (value === "95032" || value === "0800" || value === "121") score -= 180;
-      if (footerWords.test(context)) score -= 190;
-      if (dateWords.test(context) && !strongCodeWords.test(context)) score -= 80;
+      if (footerWords.test(context)) score -= 170;
       if (/[\/:.-]\s*$/.test(text.slice(Math.max(0, candidate.index - 2), candidate.index))) score -= 35;
-      if (/^\d{4,8}$/.test(value) && /(tel[eé]fono|phone|llama|call|\+\d|0800)/i.test(context)) score -= 120;
+      if (/(tel[eé]fono|phone|llama|call|\+\d|0800)/i.test(context)) score -= 120;
 
-      // Si no hay ninguna palabra cercana que indique código, no lo aceptamos.
-      if (!codeWords.test(context)) score -= 100;
+      // Si no hay ninguna palabra cercana de código, bajamos fuerte, pero no bloqueamos correos reales.
+      if (!codeWords.test(context)) score -= 65;
 
-      // Penaliza números repetidos que suelen venir de bloques ocultos o metadatos.
       const occurrences = (text.match(new RegExp(`\\b${escapeRegExp(value)}\\b`, "g")) || []).length;
-      if (occurrences > 2 && !strongCodeWords.test(context)) score -= 70;
+      if (occurrences > 3 && !strongCodeWords.test(context)) score -= 45;
 
       score -= candidate.index / 100000;
 

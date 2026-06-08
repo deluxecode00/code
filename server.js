@@ -209,6 +209,14 @@ function savePlataformasFromAdmin(platforms) {
   return normalized;
 }
 
+function savePlataformasObject(plataformas) {
+  const normalized = mergeWithDefaults(normalizePlatformObject(plataformas));
+  fs.mkdirSync(path.dirname(RULES_FILE), { recursive: true });
+  fs.writeFileSync(RULES_FILE, JSON.stringify(normalized, null, 2), 'utf-8');
+  plataformasCache = normalized;
+  return normalized;
+}
+
 function plataformasToAdminArray(plataformas = loadPlataformas()) {
   return Object.entries(plataformas).map(([id, platform]) => ({
     id,
@@ -216,7 +224,8 @@ function plataformasToAdminArray(plataformas = loadPlataformas()) {
     short: shortFromName(platform.nombre),
     icon: platform.icono,
     color: platform.color,
-    subjects: platform.asuntos || []
+    subjects: platform.asuntos || [],
+    defaultSubjects: DEFAULT_PLATAFORMAS[id]?.asuntos || []
   }));
 }
 
@@ -226,85 +235,12 @@ function getRulesSource() {
   return 'default';
 }
 
-function escapeGmailQuery(value = '') {
-  return String(value)
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .trim();
-}
-
-function sanitizeEmail(value = '') {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '');
-}
-
-function canonicalGmailEmail(value = '') {
-  const email = sanitizeEmail(value);
-  const [local, domain] = email.split('@');
-  if (!local || !domain) return email;
-
-  if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    return `${local.split('+')[0].replace(/\./g, '')}@gmail.com`;
-  }
-
-  return email;
-}
-
-function emailVariants(value = '') {
-  const exact = sanitizeEmail(value);
-  const canonical = canonicalGmailEmail(value);
-  return [...new Set([exact, canonical].filter(Boolean))];
-}
-
-function compactForEmailMatch(value = '') {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/\s+/g, '');
-}
-
-function canonicalizeGmailAddressesInText(text = '') {
-  return String(text || '').replace(/[a-z0-9._%+-]+@(gmail|googlemail)\.com/gi, match => canonicalGmailEmail(match));
-}
-
-function messageMatchesRecipient(headers = {}, body = '', snippet = '', destinatario = '') {
-  const variants = emailVariants(destinatario);
-  if (!variants.length) return true;
-
-  const headerFields = [
-    headers['to'],
-    headers['delivered-to'],
-    headers['x-original-to'],
-    headers['x-forwarded-to'],
-    headers['cc'],
-    headers['bcc'],
-    headers['reply-to']
-  ].filter(Boolean).join(' ');
-
-  const exactHaystack = compactForEmailMatch(`${headerFields} ${body || ''} ${snippet || ''}`);
-  const canonicalHaystack = canonicalizeGmailAddressesInText(exactHaystack);
-
-  return variants.some(email => {
-    const exact = compactForEmailMatch(email);
-    const canonical = canonicalGmailEmail(email);
-    return exactHaystack.includes(exact) || canonicalHaystack.includes(canonical);
-  });
-}
-
 function buildSubjectQuery(plataformaKey) {
   const asuntos = loadPlataformas()[plataformaKey]?.asuntos || [];
   if (asuntos.length === 0) return '';
-  return asuntos.map(asunto => `subject:"${escapeGmailQuery(asunto)}"`).join(' OR ');
+  return asuntos.map(asunto => `subject:"${asunto.replace(/"/g, '\\"')}"`).join(' OR ');
 }
 
-function buildRecipientQuery(destinatario = '') {
-  const email = sanitizeEmail(destinatario);
-  if (!email) return '';
-
-  const safe = escapeGmailQuery(email);
-  return `{to:${safe} deliveredto:${safe} cc:${safe} bcc:${safe} "${safe}"}`;
-}
 
 function decodeBase64(data) {
   return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
@@ -354,49 +290,6 @@ function parseGmailTokens() {
   }
 }
 
-async function fetchFullMessages(gmail, messages = [], destinatario = null) {
-  const resultados = [];
-
-  for (const msg of messages) {
-    const fullMsg = await gmail.users.messages.get({
-      userId: 'me',
-      id: msg.id,
-      format: 'full'
-    });
-
-    const payload = fullMsg.data.payload;
-    const headers = getHeaders(payload);
-    const body = getEmailBody(payload);
-    const snippet = fullMsg.data.snippet || '';
-
-    if (!messageMatchesRecipient(headers, body, snippet, destinatario)) {
-      continue;
-    }
-
-    resultados.push({
-      id: msg.id,
-      from: headers['from'] || 'Desconocido',
-      date: headers['date'] || '',
-      subject: headers['subject'] || '',
-      body,
-      snippet
-    });
-  }
-
-  resultados.sort((a, b) => new Date(b.date) - new Date(a.date));
-  return resultados;
-}
-
-async function gmailListMessages(gmail, query, maxResults = 20) {
-  const response = await gmail.users.messages.list({
-    userId: 'me',
-    q: query,
-    maxResults
-  });
-
-  return response.data.messages || [];
-}
-
 async function searchEmailsByPlataforma(plataformaKey, destinatario = null) {
   const missing = validateGoogleConfig();
   if (missing.length) {
@@ -411,41 +304,44 @@ async function searchEmailsByPlataforma(plataformaKey, destinatario = null) {
   const subjectQuery = buildSubjectQuery(plataformaKey);
   if (!subjectQuery) return [];
 
-  const cleanDestinatario = sanitizeEmail(destinatario);
-  const recipientQuery = buildRecipientQuery(cleanDestinatario);
-
-  const queries = [];
-  if (recipientQuery) {
-    queries.push(`(${subjectQuery}) ${recipientQuery}`);
-    queries.push(`(${subjectQuery}) "${escapeGmailQuery(cleanDestinatario)}"`);
+  let query = `(${subjectQuery})`;
+  if (destinatario) {
+    query = `(to:${destinatario} OR deliveredto:${destinatario}) AND (${subjectQuery})`;
   }
-  queries.push(`(${subjectQuery})`);
+  // No se registra la búsqueda ni el correo consultado para evitar guardar historial.
 
   try {
-    const seenMessageIds = new Set();
+    const response = await gmail.users.messages.list({
+      userId: 'me',
+      q: query,
+      maxResults: 5
+    });
 
-    for (let i = 0; i < queries.length; i++) {
-      const query = queries[i];
-      const maxResults = i === queries.length - 1 ? 50 : 20;
-      const messages = await gmailListMessages(gmail, query, maxResults);
-      const freshMessages = messages.filter(msg => {
-        if (!msg.id || seenMessageIds.has(msg.id)) return false;
-        seenMessageIds.add(msg.id);
-        return true;
+    const messages = response.data.messages || [];
+    // Solo se procesan resultados en memoria; no se guarda historial.
+
+    const resultados = [];
+    for (const msg of messages) {
+      const fullMsg = await gmail.users.messages.get({
+        userId: 'me',
+        id: msg.id,
+        format: 'full'
       });
-
-      const resultados = await fetchFullMessages(gmail, freshMessages, cleanDestinatario);
-
-      if (resultados.length) {
-        return resultados.slice(0, 5);
-      }
-
-      if (!cleanDestinatario) {
-        break;
-      }
+      const payload = fullMsg.data.payload;
+      const headers = getHeaders(payload);
+      const body = getEmailBody(payload);
+      resultados.push({
+        id: msg.id,
+        from: headers['from'] || 'Desconocido',
+        date: headers['date'] || '',
+        subject: headers['subject'] || '',
+        body,
+        snippet: fullMsg.data.snippet
+      });
     }
 
-    return [];
+    resultados.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return resultados;
   } catch (error) {
     const googleError = error?.response?.data?.error || error?.message || '';
 
@@ -562,6 +458,31 @@ app.put('/admin-api/rules', requireAdmin, (req, res) => {
   } catch (error) {
     console.error('Error guardando reglas admin:', error);
     return res.status(500).json({ error: 'No se pudieron guardar las reglas: ' + error.message });
+  }
+});
+
+app.post('/admin-api/rules/reset/:id', requireAdmin, (req, res) => {
+  try {
+    const id = keyFromName(req.params.id || '');
+    const defaults = DEFAULT_PLATAFORMAS[id];
+
+    if (!defaults) {
+      return res.status(404).json({ error: 'No existe una base para esa plataforma.' });
+    }
+
+    const current = loadPlataformas({ force: true });
+    current[id] = {
+      nombre: defaults.nombre,
+      icono: defaults.icono,
+      color: defaults.color,
+      asuntos: uniqueSubjects(defaults.asuntos)
+    };
+
+    const saved = savePlataformasObject(current);
+    return res.json({ ok: true, platforms: plataformasToAdminArray(saved) });
+  } catch (error) {
+    console.error('Error restaurando asuntos base:', error);
+    return res.status(500).json({ error: 'No se pudieron restaurar los asuntos base: ' + error.message });
   }
 });
 
