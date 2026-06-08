@@ -276,6 +276,7 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
   <div class="actions">
     <a class="btn" href="/">Buscador</a>
     <button class="btn" id="logoutBtn" type="button">Salir</button>
+    <button class="btn" id="restoreBaseBtn" type="button">Restaurar base</button>
     <button class="btn primary" onclick="exportRules()">Exportar</button>
   </div>
 </header>
@@ -407,7 +408,10 @@ async function saveRules(){
     method: "PUT",
     body: JSON.stringify({ platforms })
   });
+  const selectedId = platforms[selected]?.id;
   platforms = Array.isArray(data.platforms) ? data.platforms : platforms;
+  const nextIndex = platforms.findIndex(p => p.id === selectedId);
+  if (nextIndex >= 0) selected = nextIndex;
   render();
 }
 
@@ -493,12 +497,47 @@ async function addSubject(){
 }
 
 async function removeSubject(i){
-  platforms[selected].subjects.splice(i, 1);
+  const current = platforms[selected];
+  const subject = current?.subjects?.[i];
+
+  if (!subject) return;
+
+  if (!confirm(`¿Eliminar este asunto de ${current.name}?\n\n${subject}`)) {
+    return;
+  }
+
+  current.subjects.splice(i, 1);
+
   try {
     await saveRules();
     showToast("Asunto eliminado");
   } catch (error) {
     showToast(error.message || "No se pudo guardar");
+    await loadRules();
+  }
+}
+
+async function restoreBaseSubjects(){
+  const current = platforms[selected];
+  if (!current) return;
+
+  if (!confirm(`¿Restaurar los asuntos base de ${current.name}?\n\nEsto recupera la lista original de esa plataforma.`)) {
+    return;
+  }
+
+  try {
+    const data = await api(`/admin-api/rules/reset/${encodeURIComponent(current.id)}`, {
+      method: "POST",
+      body: "{}"
+    });
+
+    platforms = Array.isArray(data.platforms) ? data.platforms : platforms;
+    const nextIndex = platforms.findIndex(p => p.id === current.id);
+    if (nextIndex >= 0) selected = nextIndex;
+    render();
+    showToast("Asuntos base restaurados");
+  } catch (error) {
+    showToast(error.message || "No se pudo restaurar");
     await loadRules();
   }
 }
@@ -522,6 +561,8 @@ function escapeHtml(value){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+
+document.getElementById("restoreBaseBtn").addEventListener("click", restoreBaseSubjects);
 
 subjectInput.addEventListener("keydown", e => {
   if(e.key === "Enter") addSubject();

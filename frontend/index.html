@@ -1051,7 +1051,7 @@
       }
 
       const rows = correos.map((correo, index) => {
-        const code = extractCode(correo);
+        const code = correo.previewCode || correo.code || correo.codigo || extractCode(correo);
         const fecha = formatDate(correo.date);
         const from = correo.from ? ` · ${escapeHtml(cleanFrom(correo.from))}` : "";
 
@@ -1065,7 +1065,7 @@
               </div>
             </div>
             <div class="result-actions">
-              <div class="code-pill">${code ? escapeHtml(code) : "Sin código"}</div>
+              <div class="code-pill">${code ? escapeHtml(code) : "—"}</div>
               <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>Copiar</button>
               <button class="view-btn" type="button" data-index="${index}">Ver</button>
             </div>
@@ -1090,7 +1090,7 @@
       resultsArea.querySelectorAll(".copy-result-btn").forEach(btn => {
         btn.addEventListener("click", async () => {
           const correo = correos[Number(btn.dataset.index)];
-          const code = extractCode(correo);
+          const code = correo.previewCode || correo.code || correo.codigo || extractCode(correo);
           if (!code) return;
 
           try {
@@ -1276,7 +1276,7 @@
       const from = cleanFrom(correo.from || "");
       const to = correoInput.value.trim();
       const plataforma = normalizePlatform(null, platformInput.value);
-      const code = extractCode(correo);
+      const code = correo.previewCode || correo.code || correo.codigo || extractCode(correo);
 
       const originalBody = correo.body || escapeHtml(correo.snippet || "Sin contenido disponible.");
 
