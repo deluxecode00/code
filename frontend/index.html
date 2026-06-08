@@ -1316,27 +1316,7 @@
         </head>
         <body>
           ${originalBody}
-        
-  <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      const platformSelect = document.querySelector('[name="plataforma"], #platformInput, #plataforma, select');
-      if (platformSelect && /disney/i.test(platformSelect.value || "")) {
-        const netflixOption = Array.from(platformSelect.options || []).find(opt => /netflix/i.test(opt.value || opt.textContent || ""));
-        if (netflixOption) {
-          platformSelect.value = netflixOption.value;
-          platformSelect.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      }
-
-      const netflixButton = document.querySelector('[data-platform="netflix"], [data-value="netflix"], [data-service="netflix"]');
-      const activeDisney = document.querySelector('[data-platform*="disney"].active, [data-service*="disney"].active, [data-value*="disney"].active');
-      if (netflixButton && activeDisney && typeof netflixButton.click === "function") {
-        netflixButton.click();
-      }
-    });
-  </script>
-
-</body>
+        </body>
         </html>
       `;
 
