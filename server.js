@@ -209,14 +209,6 @@ function savePlataformasFromAdmin(platforms) {
   return normalized;
 }
 
-function savePlataformasObject(plataformas) {
-  const normalized = mergeWithDefaults(normalizePlatformObject(plataformas));
-  fs.mkdirSync(path.dirname(RULES_FILE), { recursive: true });
-  fs.writeFileSync(RULES_FILE, JSON.stringify(normalized, null, 2), 'utf-8');
-  plataformasCache = normalized;
-  return normalized;
-}
-
 function plataformasToAdminArray(plataformas = loadPlataformas()) {
   return Object.entries(plataformas).map(([id, platform]) => ({
     id,
@@ -224,8 +216,7 @@ function plataformasToAdminArray(plataformas = loadPlataformas()) {
     short: shortFromName(platform.nombre),
     icon: platform.icono,
     color: platform.color,
-    subjects: platform.asuntos || [],
-    defaultSubjects: DEFAULT_PLATAFORMAS[id]?.asuntos || []
+    subjects: platform.asuntos || []
   }));
 }
 
@@ -458,31 +449,6 @@ app.put('/admin-api/rules', requireAdmin, (req, res) => {
   } catch (error) {
     console.error('Error guardando reglas admin:', error);
     return res.status(500).json({ error: 'No se pudieron guardar las reglas: ' + error.message });
-  }
-});
-
-app.post('/admin-api/rules/reset/:id', requireAdmin, (req, res) => {
-  try {
-    const id = keyFromName(req.params.id || '');
-    const defaults = DEFAULT_PLATAFORMAS[id];
-
-    if (!defaults) {
-      return res.status(404).json({ error: 'No existe una base para esa plataforma.' });
-    }
-
-    const current = loadPlataformas({ force: true });
-    current[id] = {
-      nombre: defaults.nombre,
-      icono: defaults.icono,
-      color: defaults.color,
-      asuntos: uniqueSubjects(defaults.asuntos)
-    };
-
-    const saved = savePlataformasObject(current);
-    return res.json({ ok: true, platforms: plataformasToAdminArray(saved) });
-  } catch (error) {
-    console.error('Error restaurando asuntos base:', error);
-    return res.status(500).json({ error: 'No se pudieron restaurar los asuntos base: ' + error.message });
   }
 });
 

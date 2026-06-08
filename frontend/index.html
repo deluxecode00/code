@@ -606,18 +606,10 @@
       text-overflow: ellipsis;
     }
 
-    .result-text {
-      min-width: 0;
-      overflow: hidden;
-    }
-
     .result-item p {
       margin: 5px 0 0;
       color: var(--muted);
       font-size: 13px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .code-pill {
@@ -806,7 +798,7 @@
         font-size: 14px;
       }
 
-      .result-text h3 {
+      .result-text strong {
         font-size: 13.5px;
         line-height: 1.22;
         white-space: nowrap;
@@ -814,7 +806,7 @@
         text-overflow: ellipsis;
       }
 
-      .result-text p {
+      .result-text span {
         margin-top: 4px;
         font-size: 12px;
         line-height: 1.25;
@@ -1067,13 +1059,13 @@
           <article class="result-item" style="--accent:${plataforma.color}">
             <div class="result-main">
               <span class="result-icon">${plataforma.icono}</span>
-              <div class="result-text">
+              <div>
                 <h3>${escapeHtml(correo.subject || "Correo sin asunto")}</h3>
                 <p>${escapeHtml(fecha)}${from}</p>
               </div>
             </div>
             <div class="result-actions">
-              <div class="code-pill">${code ? escapeHtml(code) : "—"}</div>
+              <div class="code-pill">${code ? escapeHtml(code) : "Sin código"}</div>
               <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>Copiar</button>
               <button class="view-btn" type="button" data-index="${index}">Ver</button>
             </div>
@@ -1132,29 +1124,28 @@
     }
 
     function extractCode(correo) {
-      const bodyText = visibleTextFromHtml(correo.body || "");
-      const snippetText = stripHtml(correo.snippet || "");
-      const subjectText = stripHtml(correo.subject || "");
+      const sources = [
+        visibleTextFromHtml(correo.body || ""),
+        stripHtml(correo.snippet || ""),
+        stripHtml(correo.subject || "")
+      ];
 
-      const bodyCode = pickBestCode(bodyText, { source: "body" });
-      if (bodyCode.code && bodyCode.score >= 70) return bodyCode.code;
-
-      const snippetCode = pickBestCode(snippetText, { source: "snippet" });
-      if (snippetCode.code && snippetCode.score >= 55) return snippetCode.code;
-
-      const mixedCode = pickBestCode(`${subjectText} ${snippetText} ${bodyText}`, { source: "mixed" });
-      if (mixedCode.code && mixedCode.score >= 85) return mixedCode.code;
+      for (const source of sources) {
+        const code = pickBestCode(source);
+        if (code) return code;
+      }
 
       return "";
     }
 
-    function pickBestCode(text, options = {}) {
+    function pickBestCode(text) {
       const clean = normalizeText(text);
-      if (!clean) return { code: "", score: 0 };
+      if (!clean) return "";
 
       const candidates = [];
 
-      for (const match of clean.matchAll(/\b\d{4,8}\b/g)) {
+      const compactMatches = clean.matchAll(/\b\d{4,8}\b/g);
+      for (const match of compactMatches) {
         candidates.push({
           value: match[0],
           index: match.index || 0,
@@ -1162,7 +1153,8 @@
         });
       }
 
-      for (const match of clean.matchAll(/(?:\b\d[\s\-]){3,7}\d\b/g)) {
+      const spacedMatches = clean.matchAll(/(?:\b\d[\s\-]){3,7}\d\b/g);
+      for (const match of spacedMatches) {
         const value = match[0].replace(/\D/g, "");
         if (value.length >= 4 && value.length <= 8) {
           candidates.push({
@@ -1173,11 +1165,10 @@
         }
       }
 
-      if (!candidates.length) return { code: "", score: 0 };
+      if (!candidates.length) return "";
 
       const unique = [];
       const seen = new Set();
-
       for (const candidate of candidates) {
         const key = `${candidate.value}-${candidate.index}`;
         if (!seen.has(key)) {
@@ -1186,63 +1177,33 @@
         }
       }
 
-      const scored = unique
-        .map(candidate => ({
-          ...candidate,
-          score: scoreCodeCandidate(candidate, clean, options)
-        }))
-        .filter(candidate => candidate.score > 0)
-        .sort((a, b) => b.score - a.score);
-
-      if (!scored.length) return { code: "", score: 0 };
-
-      return {
-        code: scored[0].value,
-        score: scored[0].score
-      };
+      unique.sort((a, b) => scoreCodeCandidate(b, clean) - scoreCodeCandidate(a, clean));
+      return unique[0].value;
     }
 
-    function scoreCodeCandidate(candidate, text, options = {}) {
+    function scoreCodeCandidate(candidate, text) {
       const value = candidate.value;
-      const raw = String(candidate.raw || value);
-      const start = Math.max(0, candidate.index - 180);
-      const end = Math.min(text.length, candidate.index + raw.length + 180);
+      const start = Math.max(0, candidate.index - 90);
+      const end = Math.min(text.length, candidate.index + String(candidate.raw).length + 90);
       const context = text.slice(start, end).toLowerCase();
-      const before = text.slice(Math.max(0, candidate.index - 180), candidate.index).toLowerCase();
-      const after = text.slice(candidate.index + raw.length, Math.min(text.length, candidate.index + raw.length + 180)).toLowerCase();
 
       let score = 0;
 
-      const codeWords = /(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp|vence|expires|caduca|15 minutos|minutes)/i;
-      const strongCodeWords = /(\bc[oó]digo\b|\bcode\b|\botp\b|verificaci[oó]n|verification|acceso|access|inicio de sesi[oó]n|login|vence|expires)/i;
-      const footerWords = /(los gatos|albright|california|\bca\b|ee\.?\s*uu|united states|preguntas|questions|llama|call|address|direcci[oó]n|postal|zip|way|street|avenue|privacidad|privacy|t[eé]rminos|terms|centro de ayuda|help center|unsubscribe|cancelar suscripci[oó]n)/i;
+      if (/(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp)/i.test(context)) {
+        score += 100;
+      }
 
-      if (codeWords.test(context)) score += 80;
-      if (strongCodeWords.test(context)) score += 45;
-      if (strongCodeWords.test(before)) score += 25;
-      if (/(vence|expires|caduca|15 minutos|minutes)/i.test(after)) score += 30;
+      if (/(\bc[oó]digo\b|\bcode\b|\botp\b)/i.test(context)) {
+        score += 40;
+      }
 
-      if (options.source === "snippet") score += 18;
-      if (options.source === "body" && candidate.index < 2500) score += 18;
-      if (options.source === "body" && candidate.index > 4500) score -= 35;
-
-      if (value.length === 4) score += 22;
-      if (value.length === 6) score += 20;
+      if (value.length === 6) score += 18;
+      if (value.length === 4) score += 12;
       if (value.length === 5) score += 8;
-      if (value.length >= 7) score -= 3;
+      if (value.length >= 7) score += 4;
 
-      // Filtros de falsos positivos: años, direcciones, teléfonos y pies de página.
-      if (/^20\d{2}$/.test(value)) score -= 120;
-      if (value === "95032" || value === "0800" || value === "121") score -= 180;
-      if (footerWords.test(context)) score -= 170;
-      if (/[\/:.-]\s*$/.test(text.slice(Math.max(0, candidate.index - 2), candidate.index))) score -= 35;
-      if (/(tel[eé]fono|phone|llama|call|\+\d|0800)/i.test(context)) score -= 120;
-
-      // Si no hay ninguna palabra cercana de código, bajamos fuerte, pero no bloqueamos correos reales.
-      if (!codeWords.test(context)) score -= 65;
-
-      const occurrences = (text.match(new RegExp(`\\b${escapeRegExp(value)}\\b`, "g")) || []).length;
-      if (occurrences > 3 && !strongCodeWords.test(context)) score -= 45;
+      if (/^\d{4}$/.test(value) && /^20\d{2}$/.test(value)) score -= 70;
+      if (/[\/:.-]\s*$/.test(text.slice(Math.max(0, candidate.index - 2), candidate.index))) score -= 25;
 
       score -= candidate.index / 100000;
 
@@ -1267,8 +1228,8 @@
             style.includes("font-size:0") ||
             style.includes("max-height:0") ||
             style.includes("height:0") ||
-            style.includes("width:0");
-
+            style.includes("width:0") ||
+            style.includes("overflow:hidden");
           if (hidden) el.remove();
         });
 
@@ -1291,10 +1252,6 @@
       const div = document.createElement("div");
       div.innerHTML = value || "";
       return div.textContent || div.innerText || "";
-    }
-
-    function escapeRegExp(value) {
-      return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
     function formatDate(value) {
