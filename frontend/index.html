@@ -1321,8 +1321,10 @@
               padding: 0;
               background: #ffffff;
               color: #111827;
-              overflow-x: auto;
+              overflow-x: hidden;
               overflow-y: auto;
+              height: auto !important;
+              min-height: 100%;
             }
 
             img {
@@ -1334,8 +1336,17 @@
               max-width: 100%;
             }
 
-            div, table, td, tbody, tr {
+            body * {
               max-width: 100%;
+              overflow: visible !important;
+              max-height: none !important;
+              scrollbar-width: none !important;
+            }
+
+            body *::-webkit-scrollbar {
+              display: none !important;
+              width: 0 !important;
+              height: 0 !important;
             }
           </style>
         </head>
