@@ -573,6 +573,17 @@
       backdrop-filter: blur(14px);
     }
 
+
+    .result-actions.netflix-only {
+      display: flex;
+      justify-content: flex-end;
+      min-width: 110px;
+    }
+
+    .result-actions.netflix-only .view-btn {
+      min-width: 82px;
+    }
+
     .result-actions {
       display: flex;
       align-items: center;
@@ -819,6 +830,15 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) minmax(0, .9fr);
         gap: 8px;
+        width: 100%;
+      }
+
+      .result-actions.netflix-only {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .result-actions.netflix-only .view-btn {
         width: 100%;
       }
 
@@ -1071,9 +1091,9 @@
                 <p>${escapeHtml(fecha)}${from}</p>
               </div>
             </div>
-            <div class="result-actions">
-              <div class="code-pill">${netflixManual ? "Manual" : (code ? escapeHtml(code) : "—")}</div>
-              <button class="copy-result-btn" type="button" data-index="${index}" ${(!netflixManual && code) ? "" : "disabled"}>Copiar</button>
+            <div class="result-actions ${netflixManual ? "netflix-only" : ""}">
+              ${netflixManual ? "" : `<div class="code-pill">${code ? escapeHtml(code) : "—"}</div>`}
+              ${netflixManual ? "" : `<button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>Copiar</button>`}
               <button class="view-btn" type="button" data-index="${index}">Ver</button>
             </div>
           </article>
