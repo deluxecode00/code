@@ -1073,8 +1073,8 @@
               </div>
             </div>
             <div class="result-actions">
-              <div class="code-pill">${code ? escapeHtml(code) : "Sin código"}</div>
-              <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>Copiar</button>
+              <div class="code-pill">${code ? escapeHtml(code) : "Ver correo"}</div>
+              <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>${code ? "Copiar" : "Abrir"}</button>
               <button class="view-btn" type="button" data-index="${index}">Ver</button>
             </div>
           </article>
@@ -1132,28 +1132,35 @@
     }
 
     function extractCode(correo) {
-      const sources = [
-        visibleTextFromHtml(correo.body || ""),
-        stripHtml(correo.snippet || ""),
-        stripHtml(correo.subject || "")
-      ];
+      const snippetResult = pickBestCode(stripHtml(correo.snippet || ""), {
+        source: "snippet",
+        requireStrongSignal: true
+      });
 
-      for (const source of sources) {
-        const code = pickBestCode(source);
-        if (code) return code;
+      if (snippetResult.code && snippetResult.score >= 90) {
+        return snippetResult.code;
+      }
+
+      const bodyText = visibleTextFromHtml(correo.body || "");
+      const bodyResult = pickBestCode(bodyText, {
+        source: "body",
+        requireStrongSignal: true
+      });
+
+      if (bodyResult.code && bodyResult.score >= 130) {
+        return bodyResult.code;
       }
 
       return "";
     }
 
-    function pickBestCode(text) {
+    function pickBestCode(text, options = {}) {
       const clean = normalizeText(text);
-      if (!clean) return "";
+      if (!clean) return { code: "", score: 0 };
 
       const candidates = [];
 
-      const compactMatches = clean.matchAll(/\b\d{4,8}\b/g);
-      for (const match of compactMatches) {
+      for (const match of clean.matchAll(/\b\d{4,8}\b/g)) {
         candidates.push({
           value: match[0],
           index: match.index || 0,
@@ -1161,8 +1168,7 @@
         });
       }
 
-      const spacedMatches = clean.matchAll(/(?:\b\d[\s\-]){3,7}\d\b/g);
-      for (const match of spacedMatches) {
+      for (const match of clean.matchAll(/(?:\b\d[\s\-]){3,7}\d\b/g)) {
         const value = match[0].replace(/\D/g, "");
         if (value.length >= 4 && value.length <= 8) {
           candidates.push({
@@ -1173,10 +1179,11 @@
         }
       }
 
-      if (!candidates.length) return "";
+      if (!candidates.length) return { code: "", score: 0 };
 
       const unique = [];
       const seen = new Set();
+
       for (const candidate of candidates) {
         const key = `${candidate.value}-${candidate.index}`;
         if (!seen.has(key)) {
@@ -1185,41 +1192,67 @@
         }
       }
 
-      unique.sort((a, b) => scoreCodeCandidate(b, clean) - scoreCodeCandidate(a, clean));
-      return unique[0].value;
+      const scored = unique
+        .map(candidate => ({
+          ...candidate,
+          score: scoreCodeCandidate(candidate, clean, options)
+        }))
+        .filter(candidate => candidate.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+      if (!scored.length) return { code: "", score: 0 };
+
+      return {
+        code: scored[0].value,
+        score: scored[0].score
+      };
     }
 
-    function scoreCodeCandidate(candidate, text) {
+    function scoreCodeCandidate(candidate, text, options = {}) {
       const value = candidate.value;
-      const start = Math.max(0, candidate.index - 90);
-      const end = Math.min(text.length, candidate.index + String(candidate.raw).length + 90);
+      const raw = String(candidate.raw || value);
+      const start = Math.max(0, candidate.index - 160);
+      const end = Math.min(text.length, candidate.index + raw.length + 160);
       const context = text.slice(start, end).toLowerCase();
+      const before = text.slice(Math.max(0, candidate.index - 280), candidate.index).toLowerCase();
+      const after = text.slice(candidate.index + raw.length, Math.min(text.length, candidate.index + raw.length + 220)).toLowerCase();
 
       let score = 0;
 
-      if (/(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp)/i.test(context)) {
-        score += 100;
-      }
+      const codeWords = /(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp|vence|expires|caduca)/i;
+      const strongCodeWords = /(\bc[oó]digo\b|\bcode\b|\botp\b|verificaci[oó]n|verification|acceso|access)/i;
+      const footerWords = /(los gatos|albright|california|\bca\b|ee\.?\s*uu|united states|preguntas|questions|llama|call|address|direcci[oó]n|postal|zip|way|street|avenue|privacidad|privacy|t[eé]rminos|terms|centro de ayuda|help center|unsubscribe|cancelar suscripci[oó]n)/i;
+      const dateWords = /(202\d|20\d{2}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
 
-      if (/(\bc[oó]digo\b|\bcode\b|\botp\b)/i.test(context)) {
-        score += 40;
-      }
+      if (codeWords.test(context)) score += 90;
+      if (strongCodeWords.test(context)) score += 45;
 
-      if (value.length === 6) score += 18;
-      if (value.length === 4) score += 12;
-      if (value.length === 5) score += 8;
-      if (value.length >= 7) score += 4;
+      if (strongCodeWords.test(before)) score += 28;
+      if (/(vence|expires|caduca|15 minutos|minutes)/i.test(after)) score += 18;
 
-      if (/^\d{4}$/.test(value) && /^20\d{2}$/.test(value)) score -= 70;
-      if (/[\/:.-]\s*$/.test(text.slice(Math.max(0, candidate.index - 2), candidate.index))) score -= 25;
+      if (options.source === "snippet") score += 30;
+      if (options.source === "body" && candidate.index < 1600) score += 18;
+      if (options.source === "body" && candidate.index > 3500) score -= 45;
 
-      if (/(los gatos|albright|california|\bca\b|ee\.?\s*uu|united states|preguntas|questions|llama|call|address|direcci[oó]n|postal|zip|way|street|avenue)/i.test(context)) {
-        score -= 180;
-      }
+      if (value.length === 6) score += 22;
+      if (value.length === 4) score += 16;
+      if (value.length === 5) score += 6;
+      if (value.length >= 7) score -= 4;
 
-      if (!/(c[oó]digo|code|verification|verificaci[oó]n|acceso|access|login|iniciar|sesi[oó]n|temporal|one[- ]?time|otp)/i.test(context)) {
-        score -= 35;
-      }
+      // Evita falsos positivos frecuentes: años, ZIP/códigos postales, direcciones, teléfonos o pies de página.
+      if (/^20\d{2}$/.test(value)) score -= 120;
+      if (value === "95032" || value === "0800" || value === "121") score -= 180;
+      if (footerWords.test(context)) score -= 190;
+      if (dateWords.test(context) && !strongCodeWords.test(context)) score -= 80;
+      if (/[\/:.-]\s*$/.test(text.slice(Math.max(0, candidate.index - 2), candidate.index))) score -= 35;
+      if (/^\d{4,8}$/.test(value) && /(tel[eé]fono|phone|llama|call|\+\d|0800)/i.test(context)) score -= 120;
+
+      // Si no hay ninguna palabra cercana que indique código, no lo aceptamos.
+      if (!codeWords.test(context)) score -= 100;
+
+      // Penaliza números repetidos que suelen venir de bloques ocultos o metadatos.
+      const occurrences = (text.match(new RegExp(`\\b${escapeRegExp(value)}\\b`, "g")) || []).length;
+      if (occurrences > 2 && !strongCodeWords.test(context)) score -= 70;
 
       score -= candidate.index / 100000;
 
@@ -1244,8 +1277,8 @@
             style.includes("font-size:0") ||
             style.includes("max-height:0") ||
             style.includes("height:0") ||
-            style.includes("width:0") ||
-            style.includes("overflow:hidden");
+            style.includes("width:0");
+
           if (hidden) el.remove();
         });
 
@@ -1268,6 +1301,10 @@
       const div = document.createElement("div");
       div.innerHTML = value || "";
       return div.textContent || div.innerText || "";
+    }
+
+    function escapeRegExp(value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
     function formatDate(value) {
