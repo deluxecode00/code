@@ -1321,9 +1321,8 @@
               padding: 0;
               background: #ffffff;
               color: #111827;
-              overflow: visible !important;
-              height: auto !important;
-              min-height: auto !important;
+              overflow-x: auto;
+              overflow-y: auto;
             }
 
             img {
@@ -1529,12 +1528,10 @@
             iframe {
               display: block;
               width: 100%;
-              min-height: 760px;
-              height: auto;
+              height: 760px;
               border: 0;
               background: #fff;
               box-shadow: 0 18px 50px rgba(0,0,0,.16);
-              overflow: hidden;
             }
 
             .toast {
@@ -1614,8 +1611,7 @@
               }
 
               iframe {
-                min-height: 680px;
-                height: auto;
+                height: 680px;
               }
             }
           </style>
@@ -1649,7 +1645,7 @@
 
               <div class="stage">
                 <div class="frame-wrap">
-                  <iframe id="frame" title="Correo original"></iframe>
+                  <iframe id="frame" title="Correo original" scrolling="auto"></iframe>
                 </div>
               </div>
             </section>
@@ -1671,35 +1667,7 @@
             document.getElementById("subject").textContent = subjectText;
             document.getElementById("meta").textContent = metaText;
             document.getElementById("pill").textContent = service;
-            const frame = document.getElementById("frame");
-            frame.srcdoc = emailDocument;
-
-            function resizeEmailFrame() {
-              try {
-                const doc = frame.contentDocument || frame.contentWindow.document;
-                if (!doc) return;
-
-                doc.documentElement.style.overflow = "visible";
-                doc.body.style.overflow = "visible";
-                doc.documentElement.style.height = "auto";
-                doc.body.style.height = "auto";
-
-                const height = Math.max(
-                  doc.body.scrollHeight,
-                  doc.documentElement.scrollHeight,
-                  doc.body.offsetHeight,
-                  doc.documentElement.offsetHeight
-                );
-
-                frame.style.height = Math.max(height + 24, 680) + "px";
-              } catch (error) {}
-            }
-
-            frame.addEventListener("load", () => {
-              resizeEmailFrame();
-              setTimeout(resizeEmailFrame, 250);
-              setTimeout(resizeEmailFrame, 900);
-            });
+            document.getElementById("frame").srcdoc = emailDocument;
 
             const copyBtn = document.getElementById("copyBtn");
             const toast = document.getElementById("toast");
