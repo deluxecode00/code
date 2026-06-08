@@ -1321,8 +1321,7 @@
               padding: 0;
               background: #ffffff;
               color: #111827;
-              overflow: visible !important;
-              height: auto !important;
+              overflow-x: auto;
             }
 
             img {
@@ -1332,17 +1331,6 @@
 
             table {
               max-width: 100%;
-            }
-
-            body * {
-              max-width: 100%;
-              scrollbar-width: none !important;
-            }
-
-            body *::-webkit-scrollbar {
-              display: none !important;
-              width: 0 !important;
-              height: 0 !important;
             }
           </style>
         </head>
@@ -1532,36 +1520,18 @@
               border: 1px solid rgba(255,255,255,.14);
             }
 
-            .mail-content-scroll {
+
+            iframe.no-frame-scroll {
+              overflow: hidden;
+            }
+
+            iframe {
+              display: block;
               width: 100%;
               height: 760px;
-              overflow-y: auto;
-              overflow-x: hidden;
-              background: #ffffff;
-              color: #111827;
+              border: 0;
+              background: #fff;
               box-shadow: 0 18px 50px rgba(0,0,0,.16);
-            }
-
-            .mail-content-scroll * {
-              max-width: 100%;
-              overflow: visible !important;
-              max-height: none !important;
-              scrollbar-width: none !important;
-            }
-
-            .mail-content-scroll *::-webkit-scrollbar {
-              display: none !important;
-              width: 0 !important;
-              height: 0 !important;
-            }
-
-            .mail-content-scroll img {
-              max-width: 100%;
-              height: auto;
-            }
-
-            .mail-content-scroll table {
-              max-width: 100%;
             }
 
             .toast {
@@ -1640,7 +1610,7 @@
                 border-radius: 14px;
               }
 
-              .mail-content-scroll {
+              iframe {
                 height: 680px;
               }
             }
@@ -1675,7 +1645,7 @@
 
               <div class="stage">
                 <div class="frame-wrap">
-                  <div id="mailContent" class="mail-content-scroll"></div>
+                  <iframe id="frame" title="Correo original" scrolling="auto"></iframe>
                 </div>
               </div>
             </section>
@@ -1697,28 +1667,13 @@
             document.getElementById("subject").textContent = subjectText;
             document.getElementById("meta").textContent = metaText;
             document.getElementById("pill").textContent = service;
-            const mailContent = document.getElementById("mailContent");
+            const frame = document.getElementById("frame");
+            frame.srcdoc = emailDocument;
 
-            function extractEmailBodyHtml(emailDocument) {
-              try {
-                const doc = new DOMParser().parseFromString(emailDocument, "text/html");
-                return doc.body ? doc.body.innerHTML : emailDocument;
-              } catch (error) {
-                return emailDocument;
-              }
+            if (${JSON.stringify(plataforma.nombre || "")}.toLowerCase().includes("netflix")) {
+              frame.setAttribute("scrolling", "no");
+              frame.classList.add("no-frame-scroll");
             }
-
-            mailContent.innerHTML = extractEmailBodyHtml(emailDocument);
-
-            mailContent.querySelectorAll("script, style, meta, link, title").forEach(el => el.remove());
-
-            mailContent.querySelectorAll("*").forEach(el => {
-              el.style.setProperty("overflow", "visible", "important");
-              el.style.setProperty("overflow-x", "visible", "important");
-              el.style.setProperty("overflow-y", "visible", "important");
-              el.style.setProperty("max-height", "none", "important");
-              el.style.setProperty("scrollbar-width", "none", "important");
-            });
 
             const copyBtn = document.getElementById("copyBtn");
             const toast = document.getElementById("toast");
