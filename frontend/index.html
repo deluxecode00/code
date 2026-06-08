@@ -1338,8 +1338,6 @@
 
             body * {
               max-width: 100%;
-              overflow: visible !important;
-              max-height: none !important;
               scrollbar-width: none !important;
             }
 
@@ -1678,7 +1676,52 @@
             document.getElementById("subject").textContent = subjectText;
             document.getElementById("meta").textContent = metaText;
             document.getElementById("pill").textContent = service;
-            document.getElementById("frame").srcdoc = emailDocument;
+            const frame = document.getElementById("frame");
+            frame.srcdoc = emailDocument;
+
+            function removeNestedEmailScrolls() {
+              try {
+                const doc = frame.contentDocument || frame.contentWindow.document;
+                if (!doc || !doc.body) return;
+
+                doc.documentElement.style.setProperty("overflow-x", "hidden", "important");
+                doc.documentElement.style.setProperty("overflow-y", "auto", "important");
+                doc.body.style.setProperty("overflow-x", "hidden", "important");
+                doc.body.style.setProperty("overflow-y", "auto", "important");
+
+                doc.querySelectorAll("body *").forEach(el => {
+                  const tag = (el.tagName || "").toLowerCase();
+
+                  if (tag === "img" || tag === "svg") return;
+
+                  const style = frame.contentWindow.getComputedStyle(el);
+                  const hasVerticalScroll =
+                    (style.overflowY === "auto" || style.overflowY === "scroll" || style.overflow === "auto" || style.overflow === "scroll") &&
+                    el.scrollHeight > el.clientHeight + 8;
+
+                  const hasHorizontalScroll =
+                    (style.overflowX === "auto" || style.overflowX === "scroll" || style.overflow === "auto" || style.overflow === "scroll") &&
+                    el.scrollWidth > el.clientWidth + 8;
+
+                  if (hasVerticalScroll || hasHorizontalScroll) {
+                    el.style.setProperty("overflow", "visible", "important");
+                    el.style.setProperty("overflow-x", "visible", "important");
+                    el.style.setProperty("overflow-y", "visible", "important");
+                    el.style.setProperty("max-height", "none", "important");
+                    el.style.setProperty("height", "auto", "important");
+                  }
+
+                  el.style.setProperty("scrollbar-width", "none", "important");
+                });
+              } catch (error) {}
+            }
+
+            frame.addEventListener("load", () => {
+              removeNestedEmailScrolls();
+              setTimeout(removeNestedEmailScrolls, 250);
+              setTimeout(removeNestedEmailScrolls, 900);
+              setTimeout(removeNestedEmailScrolls, 1600);
+            });
 
             const copyBtn = document.getElementById("copyBtn");
             const toast = document.getElementById("toast");
