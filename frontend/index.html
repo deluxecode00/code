@@ -1035,6 +1035,12 @@
       `;
     }
 
+    function isNetflixPlatform(plataforma) {
+      const key = String(platformInput?.value || "").toLowerCase();
+      const nombre = String(plataforma?.nombre || plataforma?.name || "").toLowerCase();
+      return key.includes("netflix") || nombre.includes("netflix");
+    }
+
     function renderResults(data) {
       const correos = data.correos || [];
       const plataforma = normalizePlatform(data.plataforma, platformInput.value);
@@ -1051,7 +1057,8 @@
       }
 
       const rows = correos.map((correo, index) => {
-        const code = correo.previewCode || correo.code || correo.codigo || extractCode(correo);
+        const netflixManual = isNetflixPlatform(plataforma);
+        const code = netflixManual ? "" : (correo.previewCode || correo.code || correo.codigo || extractCode(correo));
         const fecha = formatDate(correo.date);
         const from = correo.from ? ` · ${escapeHtml(cleanFrom(correo.from))}` : "";
 
@@ -1065,8 +1072,8 @@
               </div>
             </div>
             <div class="result-actions">
-              <div class="code-pill">${code ? escapeHtml(code) : "—"}</div>
-              <button class="copy-result-btn" type="button" data-index="${index}" ${code ? "" : "disabled"}>Copiar</button>
+              <div class="code-pill">${netflixManual ? "Manual" : (code ? escapeHtml(code) : "—")}</div>
+              <button class="copy-result-btn" type="button" data-index="${index}" ${(!netflixManual && code) ? "" : "disabled"}>Copiar</button>
               <button class="view-btn" type="button" data-index="${index}">Ver</button>
             </div>
           </article>
@@ -1089,6 +1096,7 @@
 
       resultsArea.querySelectorAll(".copy-result-btn").forEach(btn => {
         btn.addEventListener("click", async () => {
+          if (isNetflixPlatform(plataforma)) return;
           const correo = correos[Number(btn.dataset.index)];
           const code = correo.previewCode || correo.code || correo.codigo || extractCode(correo);
           if (!code) return;
@@ -1308,7 +1316,27 @@
         </head>
         <body>
           ${originalBody}
-        </body>
+        
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const platformSelect = document.querySelector('[name="plataforma"], #platformInput, #plataforma, select');
+      if (platformSelect && /disney/i.test(platformSelect.value || "")) {
+        const netflixOption = Array.from(platformSelect.options || []).find(opt => /netflix/i.test(opt.value || opt.textContent || ""));
+        if (netflixOption) {
+          platformSelect.value = netflixOption.value;
+          platformSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+
+      const netflixButton = document.querySelector('[data-platform="netflix"], [data-value="netflix"], [data-service="netflix"]');
+      const activeDisney = document.querySelector('[data-platform*="disney"].active, [data-service*="disney"].active, [data-value*="disney"].active');
+      if (netflixButton && activeDisney && typeof netflixButton.click === "function") {
+        netflixButton.click();
+      }
+    });
+  </script>
+
+</body>
         </html>
       `;
 
