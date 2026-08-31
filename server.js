@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const { google } = require('googleapis');
+const postgres = require('postgres');
 const fs = require('fs');
 const path = require('path');
 
@@ -92,6 +93,10 @@ const DEFAULT_PLATAFORMAS = {
 };
 
 const RULES_FILE = process.env.ADMIN_RULES_FILE || path.join(__dirname, 'data', 'admin-rules.json');
+const RULES_DATABASE_URL = process.env.RULES_DATABASE_URL || process.env.DATABASE_URL || '';
+const RULES_DB_KEY = 'platform_rules_v1';
+let rulesSql = null;
+let rulesTableReady = false;
 let plataformasCache = null;
 
 function cloneJson(value) {
@@ -176,9 +181,7 @@ function mergeWithDefaults(custom = {}) {
   return merged;
 }
 
-function loadPlataformas({ force = false } = {}) {
-  if (plataformasCache && !force) return plataformasCache;
-
+function loadLegacyPlataformas() {
   let loaded = null;
 
   if (fs.existsSync(RULES_FILE)) {
@@ -197,24 +200,131 @@ function loadPlataformas({ force = false } = {}) {
     }
   }
 
-  plataformasCache = mergeWithDefaults(loaded || {});
+  return mergeWithDefaults(loaded || {});
+}
+
+function loadPlataformas({ force = false } = {}) {
+  // Las búsquedas de Gmail siguen usando una caché en memoria para no añadir
+  // latencia ni cambiar el flujo que ya funciona. La caché se refresca desde
+  // PostgreSQL en el arranque y cada vez que Admin lee/guarda reglas.
+  if (plataformasCache && !force) return plataformasCache;
+
+  // Si PostgreSQL está configurado, un force no debe borrar una caché válida
+  // con los defaults del disco efímero. El refresco persistente se hace con
+  // refreshPlataformasFromPersistentStore().
+  if (RULES_DATABASE_URL && plataformasCache) return plataformasCache;
+
+  plataformasCache = loadLegacyPlataformas();
   return plataformasCache;
 }
 
-function savePlataformasFromAdmin(platforms) {
-  const normalized = mergeWithDefaults(normalizeAdminArray(platforms));
-  fs.mkdirSync(path.dirname(RULES_FILE), { recursive: true });
-  fs.writeFileSync(RULES_FILE, JSON.stringify(normalized, null, 2), 'utf-8');
+function getRulesSql() {
+  if (!RULES_DATABASE_URL) return null;
+  if (rulesSql) return rulesSql;
+
+  const sslDisabled = /[?&]sslmode=disable(?:&|$)/i.test(RULES_DATABASE_URL);
+
+  rulesSql = postgres(RULES_DATABASE_URL, {
+    max: 2,
+    ssl: sslDisabled ? false : 'require',
+    connect_timeout: 10,
+    idle_timeout: 20
+  });
+
+  return rulesSql;
+}
+
+async function ensureRulesTable() {
+  const sql = getRulesSql();
+  if (!sql || rulesTableReady) return;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS codepremium_settings (
+      setting_key TEXT PRIMARY KEY,
+      setting_value JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  rulesTableReady = true;
+}
+
+async function readPlataformasFromDatabase() {
+  const sql = getRulesSql();
+  if (!sql) return null;
+
+  await ensureRulesTable();
+  const rows = await sql`
+    SELECT setting_value
+    FROM codepremium_settings
+    WHERE setting_key = ${RULES_DB_KEY}
+    LIMIT 1
+  `;
+
+  if (!rows.length) return null;
+
+  const raw = rows[0].setting_value;
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  return mergeWithDefaults(normalizePlatformObject(parsed));
+}
+
+async function writePlataformasToDatabase(plataformas) {
+  const sql = getRulesSql();
+  if (!sql) throw new Error('No hay una base de datos de reglas configurada.');
+
+  await ensureRulesTable();
+  const json = JSON.stringify(plataformas);
+
+  await sql`
+    INSERT INTO codepremium_settings (setting_key, setting_value, updated_at)
+    VALUES (${RULES_DB_KEY}, ${json}::jsonb, NOW())
+    ON CONFLICT (setting_key)
+    DO UPDATE SET
+      setting_value = EXCLUDED.setting_value,
+      updated_at = NOW()
+  `;
+}
+
+async function refreshPlataformasFromPersistentStore() {
+  if (!RULES_DATABASE_URL) {
+    plataformasCache = loadLegacyPlataformas();
+    return plataformasCache;
+  }
+
+  const stored = await readPlataformasFromDatabase();
+  if (stored) {
+    plataformasCache = stored;
+    return plataformasCache;
+  }
+
+  // Primera conexión: migra automáticamente lo que ya exista en JSON/env.
+  // Si no hay nada personalizado, guarda los valores base actuales.
+  const initial = loadLegacyPlataformas();
+  await writePlataformasToDatabase(initial);
+  plataformasCache = initial;
+  return plataformasCache;
+}
+
+async function persistPlataformas(normalized) {
+  if (RULES_DATABASE_URL) {
+    await writePlataformasToDatabase(normalized);
+  } else {
+    fs.mkdirSync(path.dirname(RULES_FILE), { recursive: true });
+    fs.writeFileSync(RULES_FILE, JSON.stringify(normalized, null, 2), 'utf-8');
+  }
+
   plataformasCache = normalized;
   return normalized;
 }
 
-function savePlataformasObject(plataformas) {
+async function savePlataformasFromAdmin(platforms) {
+  const normalized = mergeWithDefaults(normalizeAdminArray(platforms));
+  return persistPlataformas(normalized);
+}
+
+async function savePlataformasObject(plataformas) {
   const normalized = mergeWithDefaults(normalizePlatformObject(plataformas));
-  fs.mkdirSync(path.dirname(RULES_FILE), { recursive: true });
-  fs.writeFileSync(RULES_FILE, JSON.stringify(normalized, null, 2), 'utf-8');
-  plataformasCache = normalized;
-  return normalized;
+  return persistPlataformas(normalized);
 }
 
 function plataformasToAdminArray(plataformas = loadPlataformas()) {
@@ -230,6 +340,7 @@ function plataformasToAdminArray(plataformas = loadPlataformas()) {
 }
 
 function getRulesSource() {
+  if (RULES_DATABASE_URL) return 'postgresql';
   if (fs.existsSync(RULES_FILE)) return 'archivo';
   if (process.env.ADMIN_RULES_JSON) return 'ADMIN_RULES_JSON';
   return 'default';
@@ -758,22 +869,28 @@ app.get('/admin-api/me', (req, res) => {
   return res.json({ ok: true, authenticated: Boolean(req.session && req.session.isAdmin) });
 });
 
-app.get('/admin-api/rules', requireAdmin, (_req, res) => {
-  return res.json({
-    ok: true,
-    source: getRulesSource(),
-    platforms: plataformasToAdminArray(loadPlataformas({ force: true }))
-  });
+app.get('/admin-api/rules', requireAdmin, async (_req, res) => {
+  try {
+    const platforms = await refreshPlataformasFromPersistentStore();
+    return res.json({
+      ok: true,
+      source: getRulesSource(),
+      platforms: plataformasToAdminArray(platforms)
+    });
+  } catch (error) {
+    console.error('Error leyendo reglas admin:', error);
+    return res.status(500).json({ error: 'No se pudieron cargar las reglas persistentes: ' + error.message });
+  }
 });
 
-app.put('/admin-api/rules', requireAdmin, (req, res) => {
+app.put('/admin-api/rules', requireAdmin, async (req, res) => {
   try {
     const { platforms } = req.body || {};
     if (!Array.isArray(platforms)) {
       return res.status(400).json({ error: 'Formato inválido. Se esperaba platforms como arreglo.' });
     }
 
-    const saved = savePlataformasFromAdmin(platforms);
+    const saved = await savePlataformasFromAdmin(platforms);
     return res.json({ ok: true, platforms: plataformasToAdminArray(saved) });
   } catch (error) {
     console.error('Error guardando reglas admin:', error);
@@ -781,7 +898,7 @@ app.put('/admin-api/rules', requireAdmin, (req, res) => {
   }
 });
 
-app.post('/admin-api/rules/reset/:id', requireAdmin, (req, res) => {
+app.post('/admin-api/rules/reset/:id', requireAdmin, async (req, res) => {
   try {
     const id = keyFromName(req.params.id || '');
     const defaults = DEFAULT_PLATAFORMAS[id];
@@ -790,7 +907,7 @@ app.post('/admin-api/rules/reset/:id', requireAdmin, (req, res) => {
       return res.status(404).json({ error: 'No existe una base para esa plataforma.' });
     }
 
-    const current = loadPlataformas({ force: true });
+    const current = await refreshPlataformasFromPersistentStore();
     current[id] = {
       nombre: defaults.nombre,
       icono: defaults.icono,
@@ -798,7 +915,7 @@ app.post('/admin-api/rules/reset/:id', requireAdmin, (req, res) => {
       asuntos: uniqueSubjects(defaults.asuntos)
     };
 
-    const saved = savePlataformasObject(current);
+    const saved = await savePlataformasObject(current);
     return res.json({ ok: true, platforms: plataformasToAdminArray(saved) });
   } catch (error) {
     console.error('Error restaurando asuntos base:', error);
@@ -871,12 +988,27 @@ app.get('/auth/google/callback', googleCallbackHandler);
 // Si usas este alias, GOOGLE_REDIRECT_URI debe terminar exactamente en /api/oauth2/callback.
 app.get('/api/oauth2/callback', googleCallbackHandler);
 
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
-  console.log(`Redirect URI configurado: ${REDIRECT_URI}`);
-  console.log(`Google Client ID: ${CLIENT_ID ? 'configurado' : 'FALTA'}`);
-  console.log(`Google Client Secret: ${CLIENT_SECRET ? 'configurado' : 'FALTA'}`);
-  console.log(`GMAIL_TOKENS: ${process.env.GMAIL_TOKENS ? 'configurado' : 'FALTA'}`);
-  console.log(`ADMIN_PASSWORD: ${process.env.ADMIN_PASSWORD ? 'configurado' : 'FALTA'}`);
-  console.log(`Reglas admin: ${getRulesSource()}`);
-});
+async function startServer() {
+  try {
+    await refreshPlataformasFromPersistentStore();
+    console.log(`Reglas cargadas desde: ${getRulesSource()}`);
+  } catch (error) {
+    // No bloqueamos la búsqueda de códigos si la BD está temporalmente caída.
+    // El sistema conserva el comportamiento anterior y Admin mostrará el error
+    // al intentar guardar hasta que la conexión persistente vuelva.
+    console.error('No se pudieron inicializar las reglas persistentes:', error.message);
+    plataformasCache = loadLegacyPlataformas();
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Servidor escuchando en puerto ${PORT}`);
+    console.log(`Redirect URI configurado: ${REDIRECT_URI}`);
+    console.log(`Google Client ID: ${CLIENT_ID ? 'configurado' : 'FALTA'}`);
+    console.log(`Google Client Secret: ${CLIENT_SECRET ? 'configurado' : 'FALTA'}`);
+    console.log(`GMAIL_TOKENS: ${process.env.GMAIL_TOKENS ? 'configurado' : 'FALTA'}`);
+    console.log(`ADMIN_PASSWORD: ${process.env.ADMIN_PASSWORD ? 'configurado' : 'FALTA'}`);
+    console.log(`Reglas admin: ${getRulesSource()}`);
+  });
+}
+
+startServer();
