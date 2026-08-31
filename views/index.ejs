@@ -230,7 +230,10 @@
             .btn-view-netflix { padding: 0.3rem 0.8rem; font-size: 0.65rem; }
             .btn-netflix { padding: 0.8rem 1rem; font-size: 0.9rem; }
         }
-    </style>
+    
+        .resultado-icon.spam-source{border:1.5px solid rgba(179,154,116,.72);box-shadow:0 0 0 2px rgba(179,154,116,.08),0 0 7px rgba(179,154,116,.08);}
+        .email-header-logo.spam-source{border:1.5px solid rgba(179,154,116,.72);box-shadow:0 0 0 2px rgba(179,154,116,.08),0 0 7px rgba(179,154,116,.08);}
+</style>
 </head>
 <body>
 <div class="container">
@@ -374,7 +377,10 @@
             btn.addEventListener('click', (e) => {
                 const idx = btn.getAttribute('data-index');
                 const correo = correos[idx];
-                const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Correo OTP</title><style>body{background:#0B0E16;color:#EFF3F8;padding:1rem;font-family:system-ui,'Inter',sans-serif;} .card{max-width:700px;margin:auto;background:#141A24;padding:2rem;border-radius:2rem;}</style></head><body><div class="card">${correo.body}</div></body></html>`;
+                const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Correo OTP</title><style>body{background:#0B0E16;color:#EFF3F8;padding:1rem;font-family:system-ui,'Inter',sans-serif;} .card{max-width:700px;margin:auto;background:#141A24;padding:2rem;border-radius:2rem;}
+        .resultado-icon.spam-source{border:1.5px solid rgba(179,154,116,.72);box-shadow:0 0 0 2px rgba(179,154,116,.08),0 0 7px rgba(179,154,116,.08);}
+        .email-header-logo.spam-source{border:1.5px solid rgba(179,154,116,.72);box-shadow:0 0 0 2px rgba(179,154,116,.08),0 0 7px rgba(179,154,116,.08);}
+</style></head><body><div class="card">${correo.body}</div></body></html>`;
                 const blob = new Blob([fullHtml], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
                 window.open(url, '_blank');

@@ -690,6 +690,13 @@ async function fetchFullMessages(gmail, messages = [], destinatario = null) {
     const headers = getHeaders(payload);
     const body = getEmailBody(payload);
     const snippet = fullMsg.data.snippet || '';
+    const labelIds = Array.isArray(fullMsg.data.labelIds) ? fullMsg.data.labelIds : [];
+    const isSpam = labelIds.includes('SPAM');
+    const isTrash = labelIds.includes('TRASH');
+
+    if (isTrash) {
+      continue;
+    }
 
     if (!messageMatchesRecipient(headers, body, snippet, destinatario)) {
       continue;
@@ -706,7 +713,8 @@ async function fetchFullMessages(gmail, messages = [], destinatario = null) {
       body,
       snippet,
       previewCode,
-      code: previewCode
+      code: previewCode,
+      isSpam
     });
   }
 
@@ -718,7 +726,8 @@ async function gmailListMessages(gmail, query, maxResults = 20) {
   const response = await gmail.users.messages.list({
     userId: 'me',
     q: query,
-    maxResults
+    maxResults,
+    includeSpamTrash: true
   });
 
   return response.data.messages || [];

@@ -607,6 +607,13 @@
       place-items: center;
       background: color-mix(in srgb, var(--accent, var(--red)) 22%, transparent);
       color: #fff;
+      border: 1.5px solid transparent;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .result-icon.spam-source {
+      border-color: rgba(179,154,116,.72);
+      box-shadow: 0 0 0 2px rgba(179,154,116,.08), 0 0 7px rgba(179,154,116,.08);
     }
 
     .result-item h3 {
@@ -1081,11 +1088,12 @@
         const code = netflixManual ? "" : (correo.previewCode || correo.code || correo.codigo || extractCode(correo));
         const fecha = formatDate(correo.date);
         const from = correo.from ? ` · ${escapeHtml(cleanFrom(correo.from))}` : "";
+        const spamClass = correo.isSpam ? " spam-source" : "";
 
         return `
           <article class="result-item" style="--accent:${plataforma.color}">
             <div class="result-main">
-              <span class="result-icon">${plataforma.icono}</span>
+              <span class="result-icon${spamClass}">${plataforma.icono}</span>
               <div>
                 <h3>${escapeHtml(correo.subject || "Correo sin asunto")}</h3>
                 <p>${escapeHtml(fecha)}${from}</p>
@@ -1380,6 +1388,7 @@
       const safeService = JSON.stringify(plataforma.nombre || "Servicio");
       const safeSubject = JSON.stringify(subject);
       const safeMeta = JSON.stringify(`Para: ${to || "correo consultado"} · Recibido: ${date}${from ? " · De: " + from : ""}`);
+      const safeIsSpam = JSON.stringify(Boolean(correo.isSpam));
 
       const fullHtml = `
         <!DOCTYPE html>
@@ -1449,6 +1458,16 @@
               background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #fff));
               box-shadow: 0 16px 34px color-mix(in srgb, var(--accent) 30%, transparent);
               flex: 0 0 auto;
+              border: 1.5px solid transparent;
+              transition: border-color .18s ease, box-shadow .18s ease;
+            }
+
+            .logo.spam-source {
+              border-color: rgba(179,154,116,.72);
+              box-shadow:
+                0 16px 34px color-mix(in srgb, var(--accent) 30%, transparent),
+                0 0 0 2px rgba(179,154,116,.08),
+                0 0 7px rgba(179,154,116,.08);
             }
 
             .brand strong {
@@ -1689,9 +1708,12 @@
             const service = ${safeService};
             const subjectText = ${safeSubject};
             const metaText = ${safeMeta};
+            const isSpamSource = ${safeIsSpam};
 
             document.documentElement.style.setProperty("--accent", accent);
-            document.getElementById("logo").textContent = icon;
+            const logo = document.getElementById("logo");
+            logo.textContent = icon;
+            if (isSpamSource) logo.classList.add("spam-source");
             document.getElementById("subject").textContent = subjectText;
             document.getElementById("meta").textContent = metaText;
             document.getElementById("pill").textContent = service;
