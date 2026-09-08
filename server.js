@@ -98,6 +98,13 @@ const RULES_DB_KEY = 'platform_rules_v1';
 let rulesSql = null;
 let rulesTableReady = false;
 let plataformasCache = null;
+const rulesStoreState = {
+  ready: false,
+  degraded: false,
+  activeSource: null,
+  lastErrorCode: null,
+  lastErrorAt: null
+};
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
@@ -203,6 +210,12 @@ function loadLegacyPlataformas() {
   return mergeWithDefaults(loaded || {});
 }
 
+function getLegacyRulesSource() {
+  if (fs.existsSync(RULES_FILE)) return 'archivo';
+  if (process.env.ADMIN_RULES_JSON) return 'ADMIN_RULES_JSON';
+  return 'default';
+}
+
 function loadPlataformas({ force = false } = {}) {
   // Las búsquedas de Gmail siguen usando una caché en memoria para no añadir
   // latencia ni cambiar el flujo que ya funciona. La caché se refresca desde
@@ -222,11 +235,39 @@ function getRulesSql() {
   if (!RULES_DATABASE_URL) return null;
   if (rulesSql) return rulesSql;
 
-  const sslDisabled = /[?&]sslmode=disable(?:&|$)/i.test(RULES_DATABASE_URL);
+  let databaseUrl;
+  try {
+    databaseUrl = new URL(RULES_DATABASE_URL);
+  } catch (_error) {
+    const error = new Error('RULES_DATABASE_URL no contiene una URL válida de PostgreSQL.');
+    error.code = 'RULES_DATABASE_URL_INVALID';
+    throw error;
+  }
+
+  if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
+    const error = new Error('RULES_DATABASE_URL debe comenzar con postgres:// o postgresql://.');
+    error.code = 'RULES_DATABASE_URL_INVALID';
+    throw error;
+  }
+
+  const sslSetting = String(process.env.RULES_DATABASE_SSL || '').trim().toLowerCase();
+  const sslMode = String(databaseUrl.searchParams.get('sslmode') || '').trim().toLowerCase();
+  const isRenderPrivateHost = databaseUrl.hostname.endsWith('.internal') || !databaseUrl.hostname.includes('.');
+  let ssl;
+
+  if (['0', 'false', 'disable', 'disabled', 'off'].includes(sslSetting) || sslMode === 'disable') {
+    ssl = false;
+  } else if (['1', 'true', 'require', 'required', 'on'].includes(sslSetting) || ['require', 'verify-ca', 'verify-full'].includes(sslMode)) {
+    ssl = 'require';
+  } else {
+    // Las URLs internas de Render viajan por su red privada y normalmente no
+    // negocian TLS. Las URLs externas sí deben usar TLS.
+    ssl = isRenderPrivateHost ? false : 'require';
+  }
 
   rulesSql = postgres(RULES_DATABASE_URL, {
     max: 2,
-    ssl: sslDisabled ? false : 'require',
+    ssl,
     connect_timeout: 10,
     idle_timeout: 20
   });
@@ -288,29 +329,65 @@ async function writePlataformasToDatabase(plataformas) {
 async function refreshPlataformasFromPersistentStore() {
   if (!RULES_DATABASE_URL) {
     plataformasCache = loadLegacyPlataformas();
+    rulesStoreState.ready = true;
+    rulesStoreState.degraded = false;
+    rulesStoreState.activeSource = getLegacyRulesSource();
+    rulesStoreState.lastErrorCode = null;
+    rulesStoreState.lastErrorAt = null;
     return plataformasCache;
   }
 
-  const stored = await readPlataformasFromDatabase();
-  if (stored) {
-    plataformasCache = stored;
-    return plataformasCache;
-  }
+  try {
+    const stored = await readPlataformasFromDatabase();
+    if (stored) {
+      plataformasCache = stored;
+    } else {
+      // Primera conexión: migra automáticamente lo que ya exista en JSON/env.
+      // Si no hay nada personalizado, guarda los valores base actuales.
+      const initial = loadLegacyPlataformas();
+      await writePlataformasToDatabase(initial);
+      plataformasCache = initial;
+    }
 
-  // Primera conexión: migra automáticamente lo que ya exista en JSON/env.
-  // Si no hay nada personalizado, guarda los valores base actuales.
-  const initial = loadLegacyPlataformas();
-  await writePlataformasToDatabase(initial);
-  plataformasCache = initial;
-  return plataformasCache;
+    rulesStoreState.ready = true;
+    rulesStoreState.degraded = false;
+    rulesStoreState.activeSource = 'postgresql';
+    rulesStoreState.lastErrorCode = null;
+    rulesStoreState.lastErrorAt = null;
+    return plataformasCache;
+  } catch (error) {
+    rulesStoreState.ready = Boolean(plataformasCache);
+    rulesStoreState.degraded = true;
+    rulesStoreState.activeSource = plataformasCache ? 'memoria-respaldo' : getLegacyRulesSource();
+    rulesStoreState.lastErrorCode = String(error.code || 'RULES_DATABASE_ERROR');
+    rulesStoreState.lastErrorAt = new Date().toISOString();
+    throw error;
+  }
 }
 
 async function persistPlataformas(normalized) {
   if (RULES_DATABASE_URL) {
-    await writePlataformasToDatabase(normalized);
+    try {
+      await writePlataformasToDatabase(normalized);
+      rulesStoreState.ready = true;
+      rulesStoreState.degraded = false;
+      rulesStoreState.activeSource = 'postgresql';
+      rulesStoreState.lastErrorCode = null;
+      rulesStoreState.lastErrorAt = null;
+    } catch (error) {
+      rulesStoreState.degraded = true;
+      rulesStoreState.lastErrorCode = String(error.code || 'RULES_DATABASE_ERROR');
+      rulesStoreState.lastErrorAt = new Date().toISOString();
+      throw error;
+    }
   } else {
     fs.mkdirSync(path.dirname(RULES_FILE), { recursive: true });
     fs.writeFileSync(RULES_FILE, JSON.stringify(normalized, null, 2), 'utf-8');
+    rulesStoreState.ready = true;
+    rulesStoreState.degraded = false;
+    rulesStoreState.activeSource = 'archivo';
+    rulesStoreState.lastErrorCode = null;
+    rulesStoreState.lastErrorAt = null;
   }
 
   plataformasCache = normalized;
@@ -340,10 +417,19 @@ function plataformasToAdminArray(plataformas = loadPlataformas()) {
 }
 
 function getRulesSource() {
-  if (RULES_DATABASE_URL) return 'postgresql';
-  if (fs.existsSync(RULES_FILE)) return 'archivo';
-  if (process.env.ADMIN_RULES_JSON) return 'ADMIN_RULES_JSON';
-  return 'default';
+  if (rulesStoreState.activeSource) return rulesStoreState.activeSource;
+  return RULES_DATABASE_URL ? 'postgresql-pendiente' : getLegacyRulesSource();
+}
+
+function getRulesStoreStatus() {
+  return {
+    configuredSource: RULES_DATABASE_URL ? 'postgresql' : getLegacyRulesSource(),
+    activeSource: getRulesSource(),
+    ready: rulesStoreState.ready,
+    degraded: rulesStoreState.degraded,
+    lastErrorCode: rulesStoreState.lastErrorCode,
+    lastErrorAt: rulesStoreState.lastErrorAt
+  };
 }
 
 function escapeGmailQuery(value = '') {
@@ -804,7 +890,8 @@ app.get('/health', (_req, res) => {
     hasGoogleClientSecret: Boolean(CLIENT_SECRET),
     hasGmailTokens: Boolean(process.env.GMAIL_TOKENS),
     hasAdminPassword: Boolean(process.env.ADMIN_PASSWORD),
-    rulesSource: getRulesSource()
+    rulesSource: getRulesSource(),
+    rulesStorage: getRulesStoreStatus()
   });
 });
 
@@ -884,11 +971,29 @@ app.get('/admin-api/rules', requireAdmin, async (_req, res) => {
     return res.json({
       ok: true,
       source: getRulesSource(),
+      readOnly: false,
+      degraded: false,
       platforms: plataformasToAdminArray(platforms)
     });
   } catch (error) {
     console.error('Error leyendo reglas admin:', error);
-    return res.status(500).json({ error: 'No se pudieron cargar las reglas persistentes: ' + error.message });
+    const fallback = plataformasCache || loadLegacyPlataformas();
+    plataformasCache = fallback;
+    rulesStoreState.ready = true;
+    rulesStoreState.activeSource = 'memoria-respaldo';
+
+    // El fallo de la BD no invalida la sesión de Admin. Se entrega una copia
+    // segura de respaldo en modo lectura para que el usuario pueda entrar,
+    // revisar/exportar las reglas y ver el problema real sin perder datos.
+    return res.json({
+      ok: true,
+      source: getRulesSource(),
+      readOnly: true,
+      degraded: true,
+      warning: 'La base de datos de reglas no está disponible. Se muestran datos de respaldo en modo solo lectura; no se sobrescribió ninguna regla guardada.',
+      storageErrorCode: rulesStoreState.lastErrorCode,
+      platforms: plataformasToAdminArray(fallback)
+    });
   }
 });
 
@@ -903,7 +1008,10 @@ app.put('/admin-api/rules', requireAdmin, async (req, res) => {
     return res.json({ ok: true, platforms: plataformasToAdminArray(saved) });
   } catch (error) {
     console.error('Error guardando reglas admin:', error);
-    return res.status(500).json({ error: 'No se pudieron guardar las reglas: ' + error.message });
+    return res.status(503).json({
+      error: 'No se guardó el cambio porque la base de datos de reglas no está disponible. Revisa RULES_DATABASE_URL y el estado de PostgreSQL en Render.',
+      code: String(error.code || 'RULES_DATABASE_ERROR')
+    });
   }
 });
 
@@ -928,7 +1036,10 @@ app.post('/admin-api/rules/reset/:id', requireAdmin, async (req, res) => {
     return res.json({ ok: true, platforms: plataformasToAdminArray(saved) });
   } catch (error) {
     console.error('Error restaurando asuntos base:', error);
-    return res.status(500).json({ error: 'No se pudieron restaurar los asuntos base: ' + error.message });
+    return res.status(503).json({
+      error: 'No se restauró la base porque el almacenamiento de reglas no está disponible.',
+      code: String(error.code || 'RULES_DATABASE_ERROR')
+    });
   }
 });
 
