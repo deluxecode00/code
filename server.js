@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const { google } = require('googleapis');
+const { neon } = require('@neondatabase/serverless');
 const postgres = require('postgres');
 const fs = require('fs');
 const path = require('path');
@@ -64,8 +65,8 @@ const DEFAULT_PLATAFORMAS = {
       'Este código vence en 15 minutos',
       'Importante: Cómo actualizar tu Hogar con Netflix',
       'Tu verificación de inicio de sesión en Netflix',
+      'FW: Tu código de acceso temporal de Netflix',
       'FW: Este código vence en 15 minutos',
-      'FW: Netflix: Tu código de inicio de sesión',
       'FW: Importante: Cómo actualizar tu Hogar con Netflix',
       'FW: Netflix : Tu codigo de inicio de sesion',
       'RV: Tu código de acceso temporal de Netflix',
@@ -104,6 +105,7 @@ const RULES_FILE = process.env.ADMIN_RULES_FILE || path.join(__dirname, 'data', 
 const RULES_DATABASE_URL = process.env.RULES_DATABASE_URL || process.env.DATABASE_URL || '';
 const RULES_DB_KEY = 'platform_rules_v1';
 let rulesSql = null;
+let rulesDatabaseDriver = null;
 let rulesTableReady = false;
 let plataformasCache = null;
 const rulesStoreState = {
@@ -262,6 +264,15 @@ function getRulesSql() {
     throw error;
   }
 
+  // Neon ofrece su controlador HTTP oficial. Al usar HTTPS (puerto 443)
+  // evitamos los timeouts de TCP/5432 que algunos servicios de Render pueden
+  // sufrir aun cuando la base y las credenciales son correctas.
+  if (databaseUrl.hostname.endsWith('.neon.tech')) {
+    rulesSql = neon(RULES_DATABASE_URL);
+    rulesDatabaseDriver = 'neon-http';
+    return rulesSql;
+  }
+
   const sslSetting = String(process.env.RULES_DATABASE_SSL || '').trim().toLowerCase();
   const sslMode = String(databaseUrl.searchParams.get('sslmode') || '').trim().toLowerCase();
   const isRenderPrivateHost = databaseUrl.hostname.endsWith('.internal') || !databaseUrl.hostname.includes('.');
@@ -283,8 +294,21 @@ function getRulesSql() {
     connect_timeout: 10,
     idle_timeout: 20
   });
+  rulesDatabaseDriver = 'postgresql';
 
   return rulesSql;
+}
+
+function getConfiguredRulesSource() {
+  if (!RULES_DATABASE_URL) return getLegacyRulesSource();
+  if (rulesDatabaseDriver) return rulesDatabaseDriver;
+
+  try {
+    const databaseUrl = new URL(RULES_DATABASE_URL);
+    return databaseUrl.hostname.endsWith('.neon.tech') ? 'neon-http' : 'postgresql';
+  } catch (_error) {
+    return 'postgresql';
+  }
 }
 
 async function ensureRulesTable() {
@@ -363,7 +387,7 @@ async function refreshPlataformasFromPersistentStore() {
 
     rulesStoreState.ready = true;
     rulesStoreState.degraded = false;
-    rulesStoreState.activeSource = 'postgresql';
+    rulesStoreState.activeSource = getConfiguredRulesSource();
     rulesStoreState.lastErrorCode = null;
     rulesStoreState.lastErrorAt = null;
     return plataformasCache;
@@ -383,7 +407,7 @@ async function persistPlataformas(normalized) {
       await writePlataformasToDatabase(normalized);
       rulesStoreState.ready = true;
       rulesStoreState.degraded = false;
-      rulesStoreState.activeSource = 'postgresql';
+      rulesStoreState.activeSource = getConfiguredRulesSource();
       rulesStoreState.lastErrorCode = null;
       rulesStoreState.lastErrorAt = null;
     } catch (error) {
@@ -430,12 +454,12 @@ function plataformasToAdminArray(plataformas = loadPlataformas()) {
 
 function getRulesSource() {
   if (rulesStoreState.activeSource) return rulesStoreState.activeSource;
-  return RULES_DATABASE_URL ? 'postgresql-pendiente' : getLegacyRulesSource();
+  return RULES_DATABASE_URL ? `${getConfiguredRulesSource()}-pendiente` : getLegacyRulesSource();
 }
 
 function getRulesStoreStatus() {
   return {
-    configuredSource: RULES_DATABASE_URL ? 'postgresql' : getLegacyRulesSource(),
+    configuredSource: getConfiguredRulesSource(),
     activeSource: getRulesSource(),
     ready: rulesStoreState.ready,
     degraded: rulesStoreState.degraded,
