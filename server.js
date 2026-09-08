@@ -4,6 +4,7 @@ const session = require('express-session');
 const { google } = require('googleapis');
 const { neon } = require('@neondatabase/serverless');
 const postgres = require('postgres');
+const dns = require('dns');
 const fs = require('fs');
 const path = require('path');
 
@@ -25,6 +26,12 @@ const REDIRECT_URI =
 
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Render y Neon publican direcciones IPv4 e IPv6. Priorizar IPv4 evita que un
+// intento HTTPS falle en una instancia sin salida IPv6 antes de probar IPv4.
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
@@ -68,12 +75,14 @@ const DEFAULT_PLATAFORMAS = {
       'Tu verificación de inicio de sesión en Netflix',
       'FW: Tu código de acceso temporal de Netflix',
       'FW: Este código vence en 15 minutos',
+      'FW: Netflix: Tu código de inicio de sesión',
       'FW: Importante: Cómo actualizar tu Hogar con Netflix',
       'FW: Netflix : Tu codigo de inicio de sesion',
       'RV: Tu código de acceso temporal de Netflix',
       'RV: Este código vence en 15 minutos',
       'RV: Netflix: Tu código de inicio de sesión',
       'RV: Importante: Cómo actualizar tu Hogar con Netflix',
+      'RV: Netflix : Tu codigo de inicio de sesion'
     ]
   },
   disneyplus: {
@@ -119,6 +128,34 @@ const rulesStoreState = {
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function collectErrorCodes(error, codes = [], visited = new Set()) {
+  if (!error || typeof error !== 'object' || visited.has(error)) return codes;
+  visited.add(error);
+
+  if (error.code && !codes.includes(String(error.code))) {
+    codes.push(String(error.code));
+  }
+
+  collectErrorCodes(error.cause, codes, visited);
+  for (const nested of Array.isArray(error.errors) ? error.errors : []) {
+    collectErrorCodes(nested, codes, visited);
+  }
+
+  return codes;
+}
+
+function getRulesErrorCode(error) {
+  return collectErrorCodes(error)[0] || 'RULES_DATABASE_ERROR';
+}
+
+function getRulesErrorDiagnostic(error) {
+  const codes = collectErrorCodes(error);
+  const type = String(error?.name || 'Error');
+  const message = String(error?.message || 'Error desconocido')
+    .replace(/postgres(?:ql)?:\/\/\S+/gi, '[DATABASE_URL_OCULTA]');
+  return `${type}: ${message}${codes.length ? ` | código: ${codes.join(', ')}` : ''}`;
 }
 
 function keyFromName(name = '') {
@@ -396,7 +433,7 @@ async function refreshPlataformasFromPersistentStore() {
     rulesStoreState.ready = Boolean(plataformasCache);
     rulesStoreState.degraded = true;
     rulesStoreState.activeSource = plataformasCache ? 'memoria-respaldo' : getLegacyRulesSource();
-    rulesStoreState.lastErrorCode = String(error.code || 'RULES_DATABASE_ERROR');
+    rulesStoreState.lastErrorCode = getRulesErrorCode(error);
     rulesStoreState.lastErrorAt = new Date().toISOString();
     throw error;
   }
@@ -413,7 +450,7 @@ async function persistPlataformas(normalized) {
       rulesStoreState.lastErrorAt = null;
     } catch (error) {
       rulesStoreState.degraded = true;
-      rulesStoreState.lastErrorCode = String(error.code || 'RULES_DATABASE_ERROR');
+      rulesStoreState.lastErrorCode = getRulesErrorCode(error);
       rulesStoreState.lastErrorAt = new Date().toISOString();
       throw error;
     }
@@ -921,6 +958,7 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'buscador-gmail',
+    nodeVersion: process.version,
     nodeEnv: process.env.NODE_ENV || 'development',
     redirectUri: REDIRECT_URI,
     hasGoogleClientId: Boolean(CLIENT_ID),
@@ -1153,8 +1191,10 @@ async function startServer() {
     // No bloqueamos la búsqueda de códigos si la BD está temporalmente caída.
     // El sistema conserva el comportamiento anterior y Admin mostrará el error
     // al intentar guardar hasta que la conexión persistente vuelva.
-    console.error('No se pudieron inicializar las reglas persistentes:', error.message);
+    console.error('No se pudieron inicializar las reglas persistentes:', getRulesErrorDiagnostic(error));
     plataformasCache = loadLegacyPlataformas();
+    rulesStoreState.ready = true;
+    rulesStoreState.activeSource = 'memoria-respaldo';
   }
 
   app.listen(PORT, () => {
