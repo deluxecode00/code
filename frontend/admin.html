@@ -164,6 +164,16 @@ label{display:block;color:#cbd5e1;font-size:12px;font-weight:850;margin-bottom:8
   padding:12px 13px;
 }
 .subject span{font-size:13px;line-height:1.35}
+.base-tag{
+  flex:0 0 auto;
+  color:#d1d5db;
+  background:rgba(255,255,255,.08);
+  border-radius:9px;
+  padding:5px 7px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
 .remove{border:0;width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,.09);color:white;flex:0 0 auto}
 .side{display:grid;gap:12px;align-content:start}
 .info{
@@ -516,13 +526,19 @@ function render(){
   statusTitle.textContent = (current.name || "Servicio") + " activo";
   statusText.textContent = (current.subjects || []).length + " asuntos configurados para búsqueda interna.";
 
+  const defaultSubjects = new Set((current.defaultSubjects || []).map(subject => String(subject).trim().toLowerCase()));
   subjectList.innerHTML = (current.subjects || []).length
-    ? current.subjects.map((s,i)=>`
-      <div class="subject">
-        <span>${escapeHtml(s)}</span>
-        <button class="remove" onclick="removeSubject(${i})" ${isReadOnly ? "disabled" : ""}>×</button>
-      </div>
-    `).join("")
+    ? current.subjects.map((s,i)=>{
+      const isBase = defaultSubjects.has(String(s).trim().toLowerCase());
+      return `
+        <div class="subject">
+          <span>${escapeHtml(s)}</span>
+          ${isBase
+            ? `<small class="base-tag" title="Regla permanente incluida en el código">BASE</small>`
+            : `<button class="remove" onclick="removeSubject(${i})" ${isReadOnly ? "disabled" : ""}>×</button>`}
+        </div>
+      `;
+    }).join("")
     : `<div class="empty">No hay asuntos guardados.</div>`;
 }
 
@@ -565,6 +581,14 @@ async function removeSubject(i){
   const subject = current?.subjects?.[i];
 
   if (!subject) return;
+
+  const isBase = (current.defaultSubjects || []).some(item =>
+    String(item).trim().toLowerCase() === String(subject).trim().toLowerCase()
+  );
+  if (isBase) {
+    showToast("Este asunto es una regla base permanente", 4000);
+    return;
+  }
 
   if (!confirm(`¿Eliminar este asunto de ${current.name}?\n\n${subject}`)) {
     return;

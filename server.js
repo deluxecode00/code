@@ -63,7 +63,15 @@ const DEFAULT_PLATAFORMAS = {
       'Tu código de acceso temporal de Netflix',
       'Este código vence en 15 minutos',
       'Importante: Cómo actualizar tu Hogar con Netflix',
-      'Tu verificación de inicio de sesión en Netflix'
+      'Tu verificación de inicio de sesión en Netflix',
+      'FW: Este código vence en 15 minutos',
+      'FW: Netflix: Tu código de inicio de sesión',
+      'FW: Importante: Cómo actualizar tu Hogar con Netflix',
+      'FW: Netflix : Tu codigo de inicio de sesion',
+      'RV: Tu código de acceso temporal de Netflix',
+      'RV: Este código vence en 15 minutos',
+      'RV: Netflix: Tu código de inicio de sesión',
+      'RV: Importante: Cómo actualizar tu Hogar con Netflix',
     ]
   },
   disneyplus: {
@@ -177,11 +185,15 @@ function mergeWithDefaults(custom = {}) {
   const merged = { ...base };
 
   for (const [key, value] of Object.entries(custom)) {
+    const defaultSubjects = base[key]?.asuntos || [];
+    const customSubjects = Array.isArray(value.asuntos) ? value.asuntos : [];
     merged[key] = {
       nombre: value.nombre || base[key]?.nombre || key,
       icono: value.icono || base[key]?.icono || '✉',
       color: value.color || base[key]?.color || '#e50914',
-      asuntos: uniqueSubjects(value.asuntos || base[key]?.asuntos || [])
+      // Las reglas incluidas en el código son permanentes. Las personalizadas
+      // se agregan encima, pero nunca pueden sustituir o borrar las reglas base.
+      asuntos: uniqueSubjects([...defaultSubjects, ...customSubjects])
     };
   }
 
