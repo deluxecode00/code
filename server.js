@@ -69,19 +69,17 @@ const DEFAULT_PLATAFORMAS = {
     color: '#E50914',
     asuntos: [
       'Tu código de acceso temporal de Netflix',
+      'Netflix: Tu código de inicio de sesión',
       'Este código vence en 15 minutos',
       'Importante: Cómo actualizar tu Hogar con Netflix',
-      'Tu verificación de inicio de sesión en Netflix',
       'FW: Tu código de acceso temporal de Netflix',
       'FW: Este código vence en 15 minutos',
-      'FW: Netflix: Tu código de inicio de sesión',
       'FW: Importante: Cómo actualizar tu Hogar con Netflix',
       'FW: Netflix : Tu codigo de inicio de sesion',
       'RV: Tu código de acceso temporal de Netflix',
       'RV: Este código vence en 15 minutos',
       'RV: Netflix: Tu código de inicio de sesión',
       'RV: Importante: Cómo actualizar tu Hogar con Netflix',
-      'RV: Netflix : Tu codigo de inicio de sesion'
     ]
   },
   disneyplus: {
